@@ -1,24 +1,49 @@
 import io
-from PIL import Image, ImageDraw, ImageFont
+import re
+import aiohttp
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 from pyrogram import filters
 from pyrogram.types import Message
-import requests
 import tempfile
 import os
 
-# You can change font path to a ttf font available in your environment
-FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+FONT_PATH_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+FONT_PATH_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
-async def get_sticker_png(client, sticker):
-    """Download a sticker (static or animated) and convert to PNG if needed."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        file_path = os.path.join(tmpdir, "sticker.webp")
-        await sticker.download(file_path)
-        img = Image.open(file_path).convert("RGBA")
-        return img
+def is_hex_color(s):
+    return bool(re.fullmatch(r"#?[0-9a-fA-F]{6}", s))
+
+async def get_image_bytes(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            if resp.status == 200:
+                return await resp.read()
+    return None
+
+async def fetch_user_photo(client, user):
+    """Fetch user profile photo and return PIL Image or None"""
+    try:
+        photos = await client.get_profile_photos(user.id, limit=1)
+        if photos.total_count > 0:
+            bio = io.BytesIO()
+            await client.download_media(photos.photos[0], file=bio)
+            bio.seek(0)
+            img = Image.open(bio).convert("RGBA")
+            return img
+    except:
+        pass
+    return None
+
+def make_rounded_avatar(img, size=40):
+    img = img.resize((size, size), Image.ANTIALIAS)
+    mask = Image.new("L", (size, size), 0)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((0, 0, size, size), fill=255)
+    output = ImageOps.fit(img, (size, size), centering=(0.5, 0.5))
+    output.putalpha(mask)
+    return output
 
 def draw_text(draw, position, text, font, max_width, fill=(0,0,0)):
-    """Draw multiline text wrapped to max_width."""
     lines = []
     words = text.split()
     line = ""
@@ -35,62 +60,79 @@ def draw_text(draw, position, text, font, max_width, fill=(0,0,0)):
     for line in lines:
         draw.text((position[0], y), line, font=font, fill=fill)
         y += font.getsize(line)[1] + 4
-    return y  # Return y position after drawing text
+    return y
+
+async def get_sticker_png(client, sticker):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        file_path = os.path.join(tmpdir, "sticker.webp")
+        await sticker.download(file_path)
+        img = Image.open(file_path).convert("RGBA")
+        return img
 
 async def gather_messages(message: Message):
-    """Gather a list of messages to quote starting from replied message
-    following reply_to_message chain."""
     messages = []
     current = message.reply_to_message
     while current:
-        messages.insert(0, current)  # insert at beginning to keep order oldest -> newest
+        messages.insert(0, current)
         current = current.reply_to_message
     return messages
 
 @filters.command("q") & filters.reply
 async def quotely_handler(client, message: Message):
-    # Parse background color or default white
+    # Default background
     bg_color = "white"
     if len(message.command) > 1:
-        bg_color = message.command[1].lower()
+        requested_color = message.command[1].lower()
+        # Allow basic colors or hex (#RRGGBB)
+        if requested_color in ("white", "black", "red", "green", "blue", "yellow", "pink", "purple", "orange", "gray"):
+            bg_color = requested_color
+        elif is_hex_color(requested_color):
+            bg_color = requested_color if requested_color.startswith("#") else f"#{requested_color}"
 
-    # Gather all messages in chain
     messages = await gather_messages(message)
 
-    # Prepare fonts
+    # Load fonts
     try:
-        font_username = ImageFont.truetype(FONT_PATH, 22)
-        font_message = ImageFont.truetype(FONT_PATH, 18)
+        font_username = ImageFont.truetype(FONT_PATH_BOLD, 22)
+        font_message = ImageFont.truetype(FONT_PATH_REGULAR, 18)
     except:
-        # fallback to default PIL font
         font_username = ImageFont.load_default()
         font_message = ImageFont.load_default()
 
     padding = 20
     max_width = 512 - padding * 2
     line_spacing = 10
-    total_height = padding  # start with padding on top
+    avatar_size = 40
+    spacing_between_messages = 25
+    total_height = padding
 
-    # First pass: calculate total height of image
-    # We'll sum heights of username + message or sticker for each message
+    # Cache avatars
+    avatars = {}
     for msg in messages:
+        user = msg.from_user
+        if user and user.id not in avatars:
+            avatars[user.id] = await fetch_user_photo(client, user)
+
+    # Calculate height
+    for msg in messages:
+        total_height += avatar_size + 5  # avatar + some margin
+
         # username height
         total_height += font_username.getsize(msg.from_user.first_name if msg.from_user else "Unknown")[1] + 5
 
         if msg.text:
-            # estimate text height with wrapping
             dummy_img = Image.new("RGBA", (max_width, 1000))
             draw = ImageDraw.Draw(dummy_img)
-            y_end = draw_text(draw, (0,0), msg.text, font_message, max_width)
+            y_end = draw_text(draw, (0, 0), msg.text, font_message, max_width)
             total_height += y_end + line_spacing
         elif msg.sticker:
-            # Sticker height ~ 150 px
             total_height += 150 + line_spacing
         else:
-            # Unknown content height fallback
-            total_height += 50 + line_spacing
+            total_height += font_message.getsize("[Unsupported content]")[1] + line_spacing
 
-    total_height += padding  # bottom padding
+        total_height += spacing_between_messages
+
+    total_height += padding
 
     # Create base image
     img = Image.new("RGBA", (512, total_height), bg_color)
@@ -99,30 +141,44 @@ async def quotely_handler(client, message: Message):
     y_offset = padding
 
     for msg in messages:
-        username = msg.from_user.first_name if msg.from_user else "Unknown"
-        # Draw username
-        draw.text((padding, y_offset), username, font=font_username, fill=(0,0,0))
-        y_offset += font_username.getsize(username)[1] + 5
+        user = msg.from_user
+        username = user.first_name if user else "Unknown"
+        avatar = avatars.get(user.id) if user else None
+
+        # Draw avatar
+        if avatar:
+            rounded_avatar = make_rounded_avatar(avatar, avatar_size)
+            img.paste(rounded_avatar, (padding, y_offset), rounded_avatar)
+        else:
+            # Draw placeholder circle if no avatar
+            draw.ellipse((padding, y_offset, padding + avatar_size, y_offset + avatar_size), fill=(180, 180, 180, 255))
+
+        x_text = padding + avatar_size + 10
+        y_text = y_offset
+
+        # Draw username bold
+        draw.text((x_text, y_text), username, font=font_username, fill=(0, 0, 0))
+        y_text += font_username.getsize(username)[1] + 5
 
         # Draw message content
         if msg.text:
-            y_offset = draw_text(draw, (padding, y_offset), msg.text, font_message, max_width)
-            y_offset += line_spacing
+            y_text = draw_text(draw, (x_text, y_text), msg.text, font_message, max_width - avatar_size - 10)
+            y_text += line_spacing
         elif msg.sticker:
-            # Download and embed sticker as PNG
             sticker_img = await get_sticker_png(client, msg.sticker)
-            # Resize sticker to max width 150 and maintain aspect ratio
             max_sticker_width = 150
             ratio = min(max_sticker_width / sticker_img.width, 1)
             new_size = (int(sticker_img.width * ratio), int(sticker_img.height * ratio))
             sticker_img = sticker_img.resize(new_size, Image.ANTIALIAS)
-            img.paste(sticker_img, (padding, y_offset), sticker_img)
-            y_offset += new_size[1] + line_spacing
+            img.paste(sticker_img, (x_text, y_text), sticker_img)
+            y_text += new_size[1] + line_spacing
         else:
-            draw.text((padding, y_offset), "[Unsupported content]", font=font_message, fill=(0,0,0))
-            y_offset += font_message.getsize("[Unsupported content]")[1] + line_spacing
+            draw.text((x_text, y_text), "[Unsupported content]", font=font_message, fill=(0, 0, 0))
+            y_text += font_message.getsize("[Unsupported content]")[1] + line_spacing
 
-    # Save to bytes
+        y_offset += max(avatar_size + 5, y_text - y_offset)
+        y_offset += spacing_between_messages
+
     bio = io.BytesIO()
     img.save(bio, "PNG")
     bio.seek(0)
