@@ -4,7 +4,7 @@ import subprocess
 from PIL import Image
 from pyrogram.types import Message
 
-BOT_TOKEN = "8009363720:AAFNbkPS7LNip5WBIy9krO3yhrY0Sc_8-vM"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 async def kang_sticker(client, message: Message, target: Message):
