@@ -1,20 +1,25 @@
-FROM python:3.12-slim
+import subprocess
+import os
 
-# Install ffmpeg and dependencies
-RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+def convert_video_to_webm(input_path: str, output_path: str) -> bool:
+    os.makedirs("temp", exist_ok=True)
 
-# Set working directory
-WORKDIR /app
+    cmd = [
+        "ffmpeg",
+        "-y",                      # overwrite without asking
+        "-i", input_path,          # input file
+        "-ss", "0",                # start at 0s
+        "-t", "3",                 # duration 3s
+        "-vf", "scale=512:-1",     # resize to 512px wide (Telegram sticker size)
+        "-c:v", "libvpx-vp9",      # VP9 codec (Telegram-compatible)
+        "-b:v", "256K",            # bitrate
+        "-an",                     # no audio
+        output_path
+    ]
 
-# Install Python dependencies inside a venv
-COPY requirements.txt .
-RUN python -m venv /opt/venv && . /opt/venv/bin/activate && pip install --no-cache-dir -r requirements.txt
-
-# Add venv to path
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Copy your bot code
-COPY . .
-
-# Run the bot
-CMD ["python", "main.py"]
+    try:
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return os.path.exists(output_path)
+    except Exception as e:
+        print(f"FFmpeg error: {e}")
+        return False
