@@ -9,7 +9,7 @@ import requests
 TEMP_DIR = "temp"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
-FONT_URL = "https://github.com/google/fonts/raw/main/apache/roboto/Roboto-Bold.ttf"
+FONT_URL = "https://github.com/dejavu-fonts/dejavu-fonts/raw/version_2_37/ttf/DejaVuSans-Bold.ttf"
 FONT_PATH = os.path.join(TEMP_DIR, "Roboto-Bold.ttf")
 
 def ensure_font():
