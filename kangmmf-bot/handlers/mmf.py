@@ -29,9 +29,10 @@ def draw_meme_text(img: Image.Image, top_text: str, bottom_text: str) -> Image.I
     font = ImageFont.truetype(FONT_PATH, font_size)
 
     def draw_centered_text(text, y):
-        w, h = draw.textsize(text, font=font)
+        bbox = font.getbbox(text)
+        w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
         x = (img.width - w) // 2
-        draw.text((x, y), text, fill="white", font=font, stroke_width=2, stroke_fill="black")
+        draw.text((x, y), text, fill="white", font=font, stroke_width=3, stroke_fill="black")
 
     if top_text:
         draw_centered_text(top_text.upper(), 10)
@@ -52,6 +53,10 @@ async def mmf_command(client, message: Message):
         top_text, bottom_text = map(str.strip, cmd.split(";", 1))
     except:
         pass  # Leave blank if parsing fails
+
+    if not top_text and not bottom_text:
+        await message.reply("Send meme text like: `/mmf top ; bottom`")
+        return
 
     replied = message.reply_to_message
     user_id = message.from_user.id
