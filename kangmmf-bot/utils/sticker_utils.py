@@ -12,7 +12,8 @@ async def kang_sticker(client, message: Message, target: Message):
     os.makedirs("temp", exist_ok=True)
 
     if target.sticker:
-        file = await target.sticker.download(file_path)
+        # Download the sticker file from the message, not from sticker object
+        file = await target.download(file_path)
         emoji = target.sticker.emoji or "😎"
     elif target.photo:
         file = await target.download(file_path)
@@ -37,7 +38,7 @@ async def kang_sticker(client, message: Message, target: Message):
     except StickerEmojiInvalid:
         await message.reply("Failed: Invalid emoji.")
     except Exception as e:
-        # First time? Create pack
+        # If adding failed, try creating pack
         try:
             await client.create_sticker_set(
                 user_id=user.id,
@@ -50,4 +51,5 @@ async def kang_sticker(client, message: Message, target: Message):
         except Exception as e:
             await message.reply(f"Failed to create sticker pack.\nError: {e}")
 
+    # Clean up temp file
     os.remove(file_path)
