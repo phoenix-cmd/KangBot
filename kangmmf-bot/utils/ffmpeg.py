@@ -1,7 +1,6 @@
 import subprocess
 import os
-import shutil
-print("✅ FFmpeg found at:", shutil.which("ffmpeg"))
+
 
 
 def convert_video_to_webm(input_path: str, output_path: str) -> bool:
