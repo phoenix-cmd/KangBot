@@ -1,10 +1,10 @@
+import os
+import subprocess
+from PIL import Image, ImageDraw, ImageFont
+import requests
 from pyrogram import filters
 from pyrogram.types import Message
 from pyrogram.handlers import MessageHandler
-from utils.ffmpeg import convert_video_to_webm
-from PIL import Image, ImageDraw, ImageFont
-import os
-import requests
 
 TEMP_DIR = "temp"
 os.makedirs(TEMP_DIR, exist_ok=True)
@@ -21,25 +21,75 @@ def ensure_font():
             f.write(r.content)
         print("Font downloaded.")
 
-def draw_meme_text(img: Image.Image, top_text: str, bottom_text: str) -> Image.Image:
-    ensure_font()  # Make sure font exists before loading
+def draw_centered_text(draw, img, text, y, font):
+    w, h = draw.textsize(text, font=font)
+    x = (img.width - w) // 2
+    draw.text((x, y), text, fill="white", font=font, stroke_width=2, stroke_fill="black")
 
+def draw_meme_text(img: Image.Image, top_text: str, bottom_text: str) -> Image.Image:
+    ensure_font()
     draw = ImageDraw.Draw(img)
     font_size = int(img.height * 0.08)
     font = ImageFont.truetype(FONT_PATH, font_size)
+    if top_text:
+        draw_centered_text(draw, img, top_text.upper(), 10, font)
+    if bottom_text:
+        draw_centered_text(draw, img, bottom_text.upper(), img.height - font_size - 10, font)
+    return img
+
+def draw_text_on_frame(frame_path, top_text, bottom_text, font_path):
+    img = Image.open(frame_path).convert("RGB")
+    draw = ImageDraw.Draw(img)
+    font_size = int(img.height * 0.08)
+    font = ImageFont.truetype(font_path, font_size)
 
     def draw_centered_text(text, y):
-        bbox = font.getbbox(text)
-        w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        w, h = draw.textsize(text, font=font)
         x = (img.width - w) // 2
-        draw.text((x, y), text, fill="white", font=font, stroke_width=3, stroke_fill="black")
+        draw.text((x, y), text, fill="white", font=font, stroke_width=2, stroke_fill="black")
 
     if top_text:
         draw_centered_text(top_text.upper(), 10)
     if bottom_text:
         draw_centered_text(bottom_text.upper(), img.height - font_size - 10)
 
-    return img
+    img.save(frame_path)
+
+def meme_video(input_video, output_video, top_text, bottom_text, font_path):
+    frames_dir = os.path.join(TEMP_DIR, "frames")
+    if os.path.exists(frames_dir):
+        # Clean up old frames
+        for f in os.listdir(frames_dir):
+            os.remove(os.path.join(frames_dir, f))
+    else:
+        os.makedirs(frames_dir)
+
+    # Extract frames
+    subprocess.run([
+        "ffmpeg", "-i", input_video,
+        "-vf", "scale=iw:ih",
+        f"{frames_dir}/frame_%04d.png"
+    ], check=True)
+
+    # Draw text on each frame
+    for filename in sorted(os.listdir(frames_dir)):
+        if filename.endswith(".png"):
+            draw_text_on_frame(os.path.join(frames_dir, filename), top_text, bottom_text, font_path)
+
+    # Re-encode frames to webm video
+    subprocess.run([
+        "ffmpeg",
+        "-framerate", "30",
+        "-i", f"{frames_dir}/frame_%04d.png",
+        "-c:v", "libvpx-vp9",
+        "-pix_fmt", "yuva420p",
+        "-auto-alt-ref", "0",
+        output_video
+    ], check=True)
+
+    # Optional: Cleanup frames
+    for f in os.listdir(frames_dir):
+        os.remove(os.path.join(frames_dir, f))
 
 async def mmf_command(client, message: Message):
     if not message.reply_to_message:
@@ -54,26 +104,26 @@ async def mmf_command(client, message: Message):
     except:
         pass  # Leave blank if parsing fails
 
-    if not top_text and not bottom_text:
-        await message.reply("Send meme text like: `/mmf top ; bottom`")
-        return
-
     replied = message.reply_to_message
     user_id = message.from_user.id
-    input_path = f"{TEMP_DIR}/{user_id}_input"
-    output_path = f"{TEMP_DIR}/{user_id}_output"
+    input_path = os.path.join(TEMP_DIR, f"{user_id}_input")
+    output_path = os.path.join(TEMP_DIR, f"{user_id}_output")
 
     if replied.video or replied.animation:
-        await message.reply("Processing video/GIF...")
+        await message.reply("Processing video/GIF with meme text... This may take a moment.")
         video_path = await replied.download(file_name=input_path + ".mp4")
         output_file = output_path + ".webm"
 
-        if convert_video_to_webm(video_path, output_file):
+        try:
+            meme_video(video_path, output_file, top_text, bottom_text, FONT_PATH)
             await message.reply_video(output_file, supports_streaming=False)
-            os.remove(video_path)
-            os.remove(output_file)
-        else:
-            await message.reply("Failed to convert the video.")
+        except Exception as e:
+            await message.reply(f"Failed to process video: {e}")
+        finally:
+            if os.path.exists(video_path):
+                os.remove(video_path)
+            if os.path.exists(output_file):
+                os.remove(output_file)
 
     elif replied.photo or (replied.document and replied.document.mime_type.startswith("image")) or (replied.sticker and not replied.sticker.is_animated):
         await message.reply("Creating your meme...")
