@@ -1,30 +1,20 @@
-# Base Python image
-FROM python:3.10-slim
+FROM python:3.12-slim
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    DEBIAN_FRONTEND=noninteractive
-
-# Install ffmpeg and other system dependencies
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    libffi-dev \
-    libssl-dev \
-    build-essential \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Install ffmpeg and dependencies
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# Copy dependencies
+# Install Python dependencies inside a venv
 COPY requirements.txt .
+RUN python -m venv /opt/venv && . /opt/venv/bin/activate && pip install --no-cache-dir -r requirements.txt
 
-# Install Python packages
-RUN pip install --no-cache-dir -r requirements.txt
+# Add venv to path
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy the rest of your bot code
+# Copy your bot code
 COPY . .
 
-# Start the bot (update this if your entry point is different)
-CMD ["python", "bot.py"]
+# Run the bot
+CMD ["python", "main.py"]
