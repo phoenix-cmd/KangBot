@@ -1,17 +1,15 @@
-# Use official Python slim image (Debian-based)
-FROM python:3.11-slim
+FROM jrottenberg/ffmpeg:5.1-alpine
 
-# Install ffmpeg and build tools
-RUN apt-get update && apt-get install -y ffmpeg gcc && rm -rf /var/lib/apt/lists/*
+# Install Python3 and pip
+RUN apk add --no-cache python3 py3-pip
 
-# Set working directory
 WORKDIR /app
 
-# Copy your app files
+# Copy requirements and install
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Copy your bot source code
 COPY . .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Run your bot
-CMD ["python", "bot.py"]
+CMD ["python3", "bot.py"]
