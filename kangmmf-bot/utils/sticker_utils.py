@@ -21,7 +21,7 @@ async def kang_sticker(client, message: Message, target: Message):
     output_path = ""
     sticker_type = ""
 
-    # === Detect type ===
+    # Detect input type
     if target.sticker:
         emoji = target.sticker.emoji or "😎"
         if target.sticker.is_animated:
@@ -43,9 +43,18 @@ async def kang_sticker(client, message: Message, target: Message):
         input_path += ".jpg"
         output_path = f"temp/sticker.png"
         await target.download(input_path)
+        
         img = Image.open(input_path).convert("RGBA")
-        img.thumbnail((512, 512))
-        img.save(output_path, "PNG")
+        img.thumbnail((512, 512))  # Resize to max 512x512
+        
+        # Save as optimized PNG first
+        img.save(output_path, "PNG", optimize=True)
+
+        # If PNG > 512 KB, convert to WEBP (usually smaller)
+        if os.path.getsize(output_path) > 512 * 1024:
+            webp_path = output_path.replace(".png", ".webp")
+            img.save(webp_path, "WEBP", quality=95)
+            output_path = webp_path
 
     elif target.document:
         mime = target.document.mime_type
@@ -55,14 +64,22 @@ async def kang_sticker(client, message: Message, target: Message):
             output_path = f"temp/sticker.webm"
             await target.download(input_path)
 
-            # Convert to webm using ffmpeg
+            # Convert GIF/MP4 to WebM video sticker format
             cmd = [
                 "ffmpeg", "-y", "-i", input_path,
-                "-vf", "scale=512:512:force_original_aspect_ratio=decrease",
-                "-c:v", "libvpx-vp9", "-b:v", "500K", "-an", "-t", "3",
+                "-vf", "scale='min(512,iw)':min'(512,ih)':force_original_aspect_ratio=decrease",
+                "-c:v", "libvpx-vp9",
+                "-b:v", "512K",
+                "-an",
+                "-t", "3",
+                "-pix_fmt", "yuva420p",
                 output_path
             ]
-            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            proc = subprocess.run(cmd, capture_output=True, text=True)
+            if proc.returncode != 0:
+                print("FFmpeg error:", proc.stderr)
+                await message.reply("Failed to convert GIF/video to video sticker.")
+                return
         else:
             await message.reply("Unsupported document format. Send gif/mp4/photo/sticker.")
             return
@@ -74,7 +91,7 @@ async def kang_sticker(client, message: Message, target: Message):
         await message.reply("Conversion failed. Output file is invalid.")
         return
 
-    # === Prepare upload ===
+    # Prepare upload files based on sticker type
     if sticker_type == "static":
         files = {"png_sticker": open(output_path, "rb")}
     elif sticker_type == "animated":
@@ -92,7 +109,7 @@ async def kang_sticker(client, message: Message, target: Message):
         "emojis": emoji
     }
 
-    # Try to create new pack
+    # Create new sticker set
     response = requests.post(f"{API_URL}/createNewStickerSet", data=data, files=files)
     result = response.json()
     print("Create response:", result)
@@ -101,7 +118,7 @@ async def kang_sticker(client, message: Message, target: Message):
         await message.reply(f"Created & added to [your pack](https://t.me/addstickers/{pack_name}) ✅", disable_web_page_preview=True)
     elif "sticker set name is already occupied" in result.get("description", ""):
         del data["title"]
-        files[list(files.keys())[0]].seek(0)
+        files[list(files.keys())[0]].seek(0)  # reset file pointer before re-upload
         response = requests.post(f"{API_URL}/addStickerToSet", data=data, files=files)
         result = response.json()
         print("Add response:", result)
@@ -113,6 +130,7 @@ async def kang_sticker(client, message: Message, target: Message):
     else:
         await message.reply(f"Failed to create sticker pack.\nError: {result.get('description')}")
 
-    # Clean up
+    # Cleanup temp files
     for f in [input_path, output_path]:
-        if os.path.exists(f): os.remove(f)
+        if os.path.exists(f):
+            os.remove(f)
