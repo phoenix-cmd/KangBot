@@ -24,11 +24,11 @@ for handler in group_admin_handlers:
 # /start command for private chat
 @app.on_message(filters.command("start") & filters.private)
 async def start(_, message: Message):
-    await message.reply_text("👋 **Hello! I'm AFC-Bot.**
+    await message.reply_text("👋 Hello! I'm AFC-Bot.
 
 I can help you:
-📌 **Kang stickers**
-🖼️ **Create memes from images/videos**
+📌 Kang stickers
+🖼️ Create memes from images/videos
 
 Here's what I can do:
 
