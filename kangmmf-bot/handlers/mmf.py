@@ -8,7 +8,11 @@ from pyrogram import filters
 from pyrogram.types import Message
 from pyrogram.handlers import MessageHandler
 import shutil
-print("ffmpeg found at:", shutil.which("ffmpeg"))
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logging.info(f"ffmpeg found at: {shutil.which('ffmpeg')}")
+
 
 TEMP_DIR = "temp"
 os.makedirs(TEMP_DIR, exist_ok=True)
