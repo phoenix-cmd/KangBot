@@ -1,17 +1,11 @@
-# Dockerfile
-FROM python:3.11-alpine
+FROM python:3.11-slim
 
-# Install system dependencies
-RUN apk update && apk add --no-cache ffmpeg build-base
+RUN apt-get update && apt-get install -y ffmpeg
 
-# Create app directory
 WORKDIR /app
 
-# Copy files
 COPY . .
 
-# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Run your bot
 CMD ["python", "bot.py"]
