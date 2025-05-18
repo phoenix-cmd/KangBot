@@ -3,6 +3,7 @@ import subprocess
 from PIL import Image, ImageDraw, ImageFont
 import requests
 import imghdr
+import ffmpeg
 from pyrogram import filters
 from pyrogram.types import Message
 from pyrogram.handlers import MessageHandler
