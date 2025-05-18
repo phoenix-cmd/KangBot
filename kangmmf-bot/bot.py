@@ -24,7 +24,7 @@ for handler in group_admin_handlers:
 # /start command for private chat
 @app.on_message(filters.command("start") & filters.private)
 async def start(_, message: Message):
-    await message.reply_text("👋 Hello! I'm AFC-Bot.
+    await message.reply_text("""👋 Hello! I'm AFC-Bot.
 
 I can help you:
 📌 Kang stickers
@@ -39,7 +39,8 @@ Here's what I can do:
 `/mmf when the code works ; but you don't know why`
 
 ✨ More features coming soon.  
-Made with ❤️ by AFC Engineers.")
+Made with ❤️ by AFC Engineers.""")
+
 
 if __name__ == "__main__":
     app.run()
