@@ -8,9 +8,6 @@ from pyrogram import filters
 from pyrogram.types import Message
 from pyrogram.handlers import MessageHandler
 import shutil
-import logging
-
-logging.basicConfig(level=logging.INFO)
 logging.info(f"ffmpeg found at: {shutil.which('ffmpeg')}")
 
 
