@@ -24,11 +24,22 @@ for handler in group_admin_handlers:
 # /start command for private chat
 @app.on_message(filters.command("start") & filters.private)
 async def start(_, message: Message):
-    await message.reply_text("👋 Hi! I can:\n\n"
-                              "📌 /kang stickers\n"
-                              "📼 /mmf videos\n"
-                              "🛡️ Manage your group.\n\n"
-                              "➕ Add me to a group and make me admin!")
+    await message.reply_text("👋 **Hello! I'm AFC-Bot.**
+
+I can help you:
+📌 **Kang stickers**
+🖼️ **Create memes from images/videos**
+
+Here's what I can do:
+
+• `/kang` — Reply to a sticker, photo, or image to steal it into your pack.
+• `/mmf top ; bottom` — Meme Maker Format! Reply to an image/sticker/video with your meme text.
+
+🛠 Example:  
+`/mmf when the code works ; but you don't know why`
+
+✨ More features coming soon.  
+Made with ❤️ by AFC Engineers.
 
 if __name__ == "__main__":
     app.run()
