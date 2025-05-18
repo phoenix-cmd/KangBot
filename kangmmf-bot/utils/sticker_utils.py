@@ -1,10 +1,7 @@
 import os
 from pyrogram.types import Message
-from pyrogram.errors import StickerEmojiInvalid
+from pyrogram.errors import StickerEmojiInvalid, StickersetInvalid
 from PIL import Image
-from pyrogram.raw.functions.stickers import CreateStickerSet, AddStickerToSet
-from pyrogram.raw.types import InputStickerSetShortName, InputSticker, InputDocument
-from pyrogram.raw.types.input_sticker_set_short_name import InputStickerSetShortName
 
 async def kang_sticker(client, message: Message, target: Message):
     user = message.from_user
@@ -29,42 +26,42 @@ async def kang_sticker(client, message: Message, target: Message):
     title = f"{user.first_name}'s Kang Pack"
 
     try:
-        # Upload file to Telegram
-        uploaded_file = await client.save_file(file_path)
-
-        # Try adding to existing pack
-        await client.invoke(
-            AddStickerToSet(
-                stickerset=InputStickerSetShortName(short_name=pack_name),
-                sticker=InputSticker(
-                    file=uploaded_file,
-                    emojis=emoji
-                )
-            )
+        # Try adding to existing sticker pack
+        await client.add_sticker_to_set(
+            user_id=user.id,
+            name=pack_name,
+            emojis=emoji,
+            png_sticker=file_path
         )
-        await message.reply(f"Kanged to [your pack](https://t.me/addstickers/{pack_name}) ✅", disable_web_page_preview=True)
-
-    except Exception as e:
+        await message.reply(
+            f"Kanged to [your pack](https://t.me/addstickers/{pack_name}) ✅",
+            disable_web_page_preview=True
+        )
+    except StickersetInvalid:
+        # Create new sticker pack if it doesn't exist
         try:
-            uploaded_file = await client.save_file(file_path)
-
-            # Create new sticker set
-            await client.invoke(
-                CreateStickerSet(
-                    user_id=user.id,
-                    title=title,
-                    short_name=pack_name,
-                    stickers=[
-                        InputSticker(
-                            file=uploaded_file,
-                            emojis=emoji
-                        )
-                    ],
-                    stickerset_type="stickersetTypeRegular"
-                )
+            await client.create_sticker_set(
+                user_id=user.id,
+                name=pack_name,
+                title=title,
+                stickers=[
+                    {
+                        "emoji": emoji,
+                        "png_sticker": file_path
+                    }
+                ]
             )
-            await message.reply(f"Created and added to [your pack](https://t.me/addstickers/{pack_name}) ✅", disable_web_page_preview=True)
-        except Exception as e2:
-            await message.reply(f"Failed to create sticker pack.\nError: {e2}")
+            await message.reply(
+                f"Created and added to [your pack](https://t.me/addstickers/{pack_name}) ✅",
+                disable_web_page_preview=True
+            )
+        except Exception as e:
+            await message.reply(f"Failed to create sticker pack.\nError: {e}")
+    except StickerEmojiInvalid:
+        await message.reply("❌ Invalid emoji used.")
+    except Exception as e:
+        await message.reply(f"Failed to kang sticker.\nError: {e}")
+    finally:
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
-    os.remove(file_path)
