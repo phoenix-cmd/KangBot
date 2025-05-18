@@ -39,7 +39,7 @@ Here's what I can do:
 `/mmf when the code works ; but you don't know why`
 
 ✨ More features coming soon.  
-Made with ❤️ by AFC Engineers.
+Made with ❤️ by AFC Engineers.")
 
 if __name__ == "__main__":
     app.run()
