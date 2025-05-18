@@ -10,7 +10,9 @@ async def kang_sticker(client, message: Message, target: Message):
     user = message.from_user
     user_id = user.id
     emoji = "😎"
-    pack_name = f"kang_pack_{user_id}_by_{client.me.username}"
+    me = await client.get_me()  # 👈 required
+    pack_name = f"kang_pack_{user_id}_by_{me.username}"
+
     title = f"{user.first_name}'s Kang Pack"
 
     os.makedirs("temp", exist_ok=True)
