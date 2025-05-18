@@ -7,6 +7,7 @@ from pyrogram.errors import FloodWait
 from handlers.kang import kang_handler
 from handlers.mmf import mmf_handler
 from handlers.group_admin import group_admin_handlers
+from handlers.quotely import quotely_handler
 import shutil
 print("✅ FFmpeg found at:", shutil.which("ffmpeg"))
 
@@ -19,7 +20,7 @@ app = Client("kangmmf_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKE
 
 app.add_handler(mmf_handler)
 app.add_handler(kang_handler)
-
+app.add_handler(quotely_handler)
 for handler in group_admin_handlers:
     app.add_handler(handler)
 
