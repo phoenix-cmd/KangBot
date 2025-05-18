@@ -2,7 +2,7 @@ import io
 import re
 import aiohttp
 from PIL import Image, ImageDraw, ImageFont, ImageOps
-from pyrogram import filters
+from pyrogram import filters, Client
 from pyrogram.types import Message
 import tempfile
 import os
@@ -77,8 +77,9 @@ async def gather_messages(message: Message):
         current = current.reply_to_message
     return messages
 
-@(filters.command("q") & filters.reply)
-async def quotely_handler(client, message: Message):
+# FIXED decorator: no () calling filters, just combine with &
+@Client.on_message(filters.command("q") & filters.reply)
+async def quotely_handler(client: Client, message: Message):
     # Default background
     bg_color = "white"
     if len(message.command) > 1:
