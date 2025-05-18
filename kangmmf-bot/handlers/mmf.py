@@ -2,6 +2,7 @@ import os
 import subprocess
 from PIL import Image, ImageDraw, ImageFont
 import requests
+import imghdr
 from pyrogram import filters
 from pyrogram.types import Message
 from pyrogram.handlers import MessageHandler
@@ -87,7 +88,7 @@ def meme_video(input_video, output_video, top_text, bottom_text, font_path):
         output_video
     ], check=True)
 
-    # Optional: Cleanup frames
+    # Cleanup frames
     for f in os.listdir(frames_dir):
         os.remove(os.path.join(frames_dir, f))
 
@@ -96,25 +97,27 @@ async def mmf_command(client, message: Message):
         await message.reply("Reply to an image/video/sticker with:\n`/mmf top text ; bottom text`")
         return
 
-    # Parse text if available
+    # Parse meme texts
     top_text, bottom_text = "", ""
     try:
         cmd = message.text.split(None, 1)[1]
         top_text, bottom_text = map(str.strip, cmd.split(";", 1))
     except:
-        pass  # Leave blank if parsing fails
+        pass  # If parsing fails, leave texts blank
 
     replied = message.reply_to_message
     user_id = message.from_user.id
     input_path = os.path.join(TEMP_DIR, f"{user_id}_input")
     output_path = os.path.join(TEMP_DIR, f"{user_id}_output")
 
+    # Video or GIF processing
     if replied.video or replied.animation:
         await message.reply("Processing video/GIF with meme text... This may take a moment.")
         video_path = await replied.download(file_name=input_path + ".mp4")
         output_file = output_path + ".webm"
 
         try:
+            ensure_font()
             meme_video(video_path, output_file, top_text, bottom_text, FONT_PATH)
             await message.reply_video(output_file, supports_streaming=False)
         except Exception as e:
@@ -125,11 +128,39 @@ async def mmf_command(client, message: Message):
             if os.path.exists(output_file):
                 os.remove(output_file)
 
+    # Photo, static sticker, or image document processing
     elif replied.photo or (replied.document and replied.document.mime_type.startswith("image")) or (replied.sticker and not replied.sticker.is_animated):
         await message.reply("Creating your meme...")
 
-        image_path = await replied.download(file_name=input_path + ".png")
-        img = Image.open(image_path).convert("RGB")
+        # Handle webp stickers by converting to PNG
+        if replied.sticker and not replied.sticker.is_animated:
+            webp_path = await replied.download(file_name=input_path + ".webp")
+            try:
+                with Image.open(webp_path) as im:
+                    im.save(input_path + ".png", "PNG")
+                os.remove(webp_path)
+            except Exception as e:
+                await message.reply(f"Failed to process the sticker image: {e}")
+                if os.path.exists(webp_path):
+                    os.remove(webp_path)
+                return
+            image_path = input_path + ".png"
+        else:
+            image_path = await replied.download(file_name=input_path + ".png")
+
+        # Validate image file is an actual image
+        if not imghdr.what(image_path):
+            await message.reply("Downloaded file is not a valid image.")
+            os.remove(image_path)
+            return
+
+        try:
+            img = Image.open(image_path).convert("RGB")
+        except Exception as e:
+            await message.reply(f"Failed to open the image: {e}")
+            os.remove(image_path)
+            return
+
         meme = draw_meme_text(img, top_text, bottom_text)
         meme_output = output_path + ".jpg"
         meme.save(meme_output, "JPEG")
