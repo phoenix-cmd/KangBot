@@ -135,16 +135,19 @@ async def mmf_command(client, message: Message):
         # Handle webp stickers by converting to PNG
         if replied.sticker and not replied.sticker.is_animated:
             webp_path = await replied.download(file_name=input_path + ".webp")
+            png_path = input_path + ".png"
             try:
-                with Image.open(webp_path) as im:
-                    im.save(input_path + ".png", "PNG")
+                # Convert webp to png using ffmpeg
+                subprocess.run([
+                    "ffmpeg", "-y", "-i", webp_path, png_path
+                ], check=True)
                 os.remove(webp_path)
             except Exception as e:
-                await message.reply(f"Failed to process the sticker image: {e}")
+                await message.reply(f"Failed to convert sticker image: {e}")
                 if os.path.exists(webp_path):
                     os.remove(webp_path)
                 return
-            image_path = input_path + ".png"
+            image_path = png_path
         else:
             image_path = await replied.download(file_name=input_path + ".png")
 
