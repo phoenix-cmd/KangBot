@@ -2,14 +2,15 @@ import os
 from pyrogram.types import Message
 from pyrogram.errors import StickerEmojiInvalid
 from PIL import Image
-from pyrogram.raw import functions, types
+from pyrogram.raw.functions.stickers import CreateStickerSet, AddStickerToSet
+from pyrogram.raw.types import InputStickerSetShortName, InputSticker, InputDocument
+from pyrogram.raw.types.input_sticker_set_short_name import InputStickerSetShortName
 
 async def kang_sticker(client, message: Message, target: Message):
     user = message.from_user
     file_path = f"temp/{user.id}.webp"
     emoji = "😎"
 
-    # Ensure temp directory exists
     os.makedirs("temp", exist_ok=True)
 
     if target.sticker:
@@ -28,34 +29,38 @@ async def kang_sticker(client, message: Message, target: Message):
     title = f"{user.first_name}'s Kang Pack"
 
     try:
-        # Add sticker to existing pack
-        await client.send(
-            functions.stickers.AddStickerToSet(
-                stickerset=types.InputStickerSetShortName(short_name=pack_name),
-                sticker=types.InputSticker(
-                    # Use PNG sticker input file
-                    png_sticker=await client.upload_file(file_path),
+        # Upload file to Telegram
+        uploaded_file = await client.save_file(file_path)
+
+        # Try adding to existing pack
+        await client.invoke(
+            AddStickerToSet(
+                stickerset=InputStickerSetShortName(short_name=pack_name),
+                sticker=InputSticker(
+                    file=uploaded_file,
                     emojis=emoji
                 )
             )
         )
         await message.reply(f"Kanged to [your pack](https://t.me/addstickers/{pack_name}) ✅", disable_web_page_preview=True)
+
     except Exception as e:
-        # If add failed, try to create a new pack
         try:
-            await client.send(
-                functions.stickers.CreateStickerSet(
+            uploaded_file = await client.save_file(file_path)
+
+            # Create new sticker set
+            await client.invoke(
+                CreateStickerSet(
                     user_id=user.id,
                     title=title,
                     short_name=pack_name,
                     stickers=[
-                        types.InputSticker(
-                            png_sticker=await client.upload_file(file_path),
+                        InputSticker(
+                            file=uploaded_file,
                             emojis=emoji
                         )
                     ],
-                    # You can specify the sticker set type (e.g., 'regular' for static stickers)
-                    stickerset_type="regular"
+                    stickerset_type="stickersetTypeRegular"
                 )
             )
             await message.reply(f"Created and added to [your pack](https://t.me/addstickers/{pack_name}) ✅", disable_web_page_preview=True)
