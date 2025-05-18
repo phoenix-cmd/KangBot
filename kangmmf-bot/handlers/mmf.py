@@ -4,12 +4,26 @@ from pyrogram.handlers import MessageHandler
 from utils.ffmpeg import convert_video_to_webm
 from PIL import Image, ImageDraw, ImageFont
 import os
+import requests
 
 TEMP_DIR = "temp"
 os.makedirs(TEMP_DIR, exist_ok=True)
-FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"  # Adjust path if needed
+
+FONT_URL = "https://github.com/google/fonts/raw/main/apache/roboto/Roboto-Bold.ttf"
+FONT_PATH = os.path.join(TEMP_DIR, "Roboto-Bold.ttf")
+
+def ensure_font():
+    if not os.path.exists(FONT_PATH):
+        print("Downloading font...")
+        r = requests.get(FONT_URL)
+        r.raise_for_status()
+        with open(FONT_PATH, "wb") as f:
+            f.write(r.content)
+        print("Font downloaded.")
 
 def draw_meme_text(img: Image.Image, top_text: str, bottom_text: str) -> Image.Image:
+    ensure_font()  # Make sure font exists before loading
+
     draw = ImageDraw.Draw(img)
     font_size = int(img.height * 0.08)
     font = ImageFont.truetype(FONT_PATH, font_size)
@@ -37,15 +51,13 @@ async def mmf_command(client, message: Message):
         cmd = message.text.split(None, 1)[1]
         top_text, bottom_text = map(str.strip, cmd.split(";", 1))
     except:
-        pass  # Leave texts blank if parsing fails
+        pass  # Leave blank if parsing fails
 
     replied = message.reply_to_message
-
     user_id = message.from_user.id
     input_path = f"{TEMP_DIR}/{user_id}_input"
     output_path = f"{TEMP_DIR}/{user_id}_output"
 
-    # If it's a video or animation
     if replied.video or replied.animation:
         await message.reply("Processing video/GIF...")
         video_path = await replied.download(file_name=input_path + ".mp4")
@@ -58,7 +70,6 @@ async def mmf_command(client, message: Message):
         else:
             await message.reply("Failed to convert the video.")
 
-    # If it's a photo or image or static sticker
     elif replied.photo or (replied.document and replied.document.mime_type.startswith("image")) or (replied.sticker and not replied.sticker.is_animated):
         await message.reply("Creating your meme...")
 
