@@ -77,7 +77,7 @@ async def gather_messages(message: Message):
         current = current.reply_to_message
     return messages
 
-@filters.command("q") & filters.reply
+@(filters.command("q") & filters.reply)
 async def quotely_handler(client, message: Message):
     # Default background
     bg_color = "white"
