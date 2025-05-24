@@ -1,4 +1,6 @@
 import asyncio
+from pyrogram import Client
+from pyrogram.types import CallbackQuery
 from collections import deque
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
