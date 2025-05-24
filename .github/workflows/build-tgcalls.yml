@@ -22,7 +22,9 @@ jobs:
 
       - name: Create dummy .env file if not present
         run: |
-          touch .env  # root level .env for docker-compose
+          mkdir -p pytgcalls
+          touch pytgcalls/.env
+
 
       - name: Build tgcalls wheel (x86_64)
         run: |
