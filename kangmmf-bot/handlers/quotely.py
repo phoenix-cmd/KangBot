@@ -7,7 +7,8 @@ import logging
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 from pyrogram import filters
 from pyrogram.types import Message
-from bot import app  # Use the actual bot instance
+from client import app
+
 
 # Setup logger
 logging.basicConfig(level=logging.INFO)
