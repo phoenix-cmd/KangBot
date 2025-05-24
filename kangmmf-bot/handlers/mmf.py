@@ -27,9 +27,77 @@ def ensure_font():
             f.write(r.content)
         logging.info("Font downloaded.")
 
-# (Your existing drawing functions here: draw_centered_text, draw_meme_text, draw_text_on_frame, meme_video)
+def draw_centered_text(draw, img, text, y, font):
+    bbox = draw.textbbox((0, 0), text, font=font)
+    w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    x = (img.width - w) // 2
+    draw.text((x, y), text, fill="white", font=font, stroke_width=2, stroke_fill="black")
+
+def draw_meme_text(img: Image.Image, top_text: str, bottom_text: str) -> Image.Image:
+    ensure_font()
+    draw = ImageDraw.Draw(img)
+    font_size = int(img.height * 0.08)
+    font = ImageFont.truetype(FONT_PATH, font_size)
+    if top_text:
+        draw_centered_text(draw, img, top_text.upper(), 10, font)
+    if bottom_text:
+        draw_centered_text(draw, img, bottom_text.upper(), img.height - font_size - 10, font)
+    return img
+
+def draw_text_on_frame(frame_path, top_text, bottom_text, font_path):
+    img = Image.open(frame_path).convert("RGB")
+    draw = ImageDraw.Draw(img)
+    font_size = int(img.height * 0.08)
+    font = ImageFont.truetype(font_path, font_size)
+
+    def draw_centered(text, y):
+        bbox = draw.textbbox((0, 0), text, font=font)
+        w = bbox[2] - bbox[0]
+        x = (img.width - w) // 2
+        draw.text((x, y), text, fill="white", font=font, stroke_width=2, stroke_fill="black")
+
+    if top_text:
+        draw_centered(top_text.upper(), 10)
+    if bottom_text:
+        draw_centered(bottom_text.upper(), img.height - font_size - 10)
+
+    img.save(frame_path)
+
+def meme_video(input_video, output_video, top_text, bottom_text, font_path):
+    frames_dir = os.path.join(TEMP_DIR, "frames")
+    os.makedirs(frames_dir, exist_ok=True)
+
+    for f in os.listdir(frames_dir):
+        os.remove(os.path.join(frames_dir, f))
+
+    # Extract frames
+    subprocess.run([
+        "ffmpeg", "-i", input_video,
+        "-vf", "scale=iw:ih",
+        f"{frames_dir}/frame_%04d.png"
+    ], check=True)
+
+    # Draw meme text on each frame
+    for filename in sorted(os.listdir(frames_dir)):
+        if filename.endswith(".png"):
+            draw_text_on_frame(os.path.join(frames_dir, filename), top_text, bottom_text, font_path)
+
+    # Re-encode video as webm VP9 with alpha
+    subprocess.run([
+        "ffmpeg",
+        "-framerate", "30",
+        "-i", f"{frames_dir}/frame_%04d.png",
+        "-c:v", "libvpx-vp9",
+        "-pix_fmt", "yuva420p",
+        "-auto-alt-ref", "0",
+        output_video
+    ], check=True)
+
+    for f in os.listdir(frames_dir):
+        os.remove(os.path.join(frames_dir, f))
 
 def convert_to_telegram_sticker(input_webm, output_webm):
+    # Converts any webm to telegram-compatible video sticker format
     cmd = [
         "ffmpeg",
         "-i", input_webm,
@@ -62,34 +130,51 @@ async def mmf_command(client, message: Message):
     input_path = os.path.join(TEMP_DIR, f"{user_id}_input")
     output_path = os.path.join(TEMP_DIR, f"{user_id}_output")
 
+    # Handle video or animation (GIF)
     if replied.video or replied.animation:
         await message.reply("Processing video/GIF with meme text... This may take a moment.")
         video_path = await replied.download(file_name=input_path + ".mp4")
-        temp_output = output_path + ".webm"
-        sticker_output = output_path + "_sticker.webm"
+        raw_output_file = output_path + "_raw.webm"
+        sticker_output_file = output_path + ".webm"
 
         try:
             ensure_font()
-            meme_video(video_path, temp_output, top_text, bottom_text, FONT_PATH)
-
-            # Convert meme video .webm to Telegram video sticker format
-            convert_to_telegram_sticker(temp_output, sticker_output)
-
-            # Send as video sticker (video note)
-            await message.reply_video_note(sticker_output, duration=3, length=512)
-
+            meme_video(video_path, raw_output_file, top_text, bottom_text, FONT_PATH)
+            convert_to_telegram_sticker(raw_output_file, sticker_output_file)
+            await message.reply_video_note(sticker_output_file, duration=3, length=512)
         except Exception as e:
             await message.reply(f"Failed to process video: `{e}`")
         finally:
-            for path in [video_path, temp_output, sticker_output]:
+            for path in [video_path, raw_output_file, sticker_output_file]:
                 if os.path.exists(path):
                     os.remove(path)
 
+    # Handle video stickers (.webm animated stickers)
+    elif replied.sticker and replied.sticker.is_video:
+        await message.reply("Processing video sticker with meme text... This may take a moment.")
+        video_path = await replied.download(file_name=input_path + ".webm")
+        raw_output_file = output_path + "_raw.webm"
+        sticker_output_file = output_path + ".webm"
+
+        try:
+            ensure_font()
+            meme_video(video_path, raw_output_file, top_text, bottom_text, FONT_PATH)
+            convert_to_telegram_sticker(raw_output_file, sticker_output_file)
+            await message.reply_video_note(sticker_output_file, duration=3, length=512)
+        except Exception as e:
+            await message.reply(f"Failed to process video sticker: `{e}`")
+        finally:
+            for path in [video_path, raw_output_file, sticker_output_file]:
+                if os.path.exists(path):
+                    os.remove(path)
+
+    # Handle static images and static stickers
     elif replied.photo or (replied.document and replied.document.mime_type.startswith("image")) or (replied.sticker and not replied.sticker.is_animated):
         await message.reply("Creating your meme...")
 
         try:
             if replied.sticker and not replied.sticker.is_animated:
+                # Convert webp sticker to png
                 webp_path = await replied.download(file_name=input_path + ".webp")
                 png_path = input_path + ".png"
                 subprocess.run(["ffmpeg", "-y", "-i", webp_path, png_path], check=True)
@@ -118,6 +203,6 @@ async def mmf_command(client, message: Message):
                     os.remove(path)
 
     else:
-        await message.reply("Unsupported media. Reply to an image, video, or static sticker.")
+        await message.reply("Unsupported media. Reply to an image, video, static sticker, or video sticker.")
 
 mmf_handler = MessageHandler(mmf_command, filters.command("mmf"))
