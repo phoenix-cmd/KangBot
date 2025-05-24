@@ -1,6 +1,11 @@
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y ffmpeg python3-pip fonts-dejavu-core && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Install ffmpeg and fonts
+RUN apt-get update && apt-get install -y ffmpeg python3-pip fonts-dejavu-core && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Add ffmpeg to PATH (usually it's in /usr/bin, but be explicit)
+ENV PATH="/usr/bin:${PATH}"
 
 WORKDIR /app
 
