@@ -2,10 +2,10 @@ import asyncio
 from collections import deque
 from pyrogram import filters, Client
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
-from pytgcalls import PyTgCalls
-from pytgcalls.exceptions import NoActiveGroupCall
-from pytgcalls.types import Update, StreamType
-from pytgcalls.types.stream import StreamAudioEnded
+from py_tgcalls import PyTgCalls
+from py_tgcalls.exceptions import NoActiveGroupCall
+from py_tgcalls.types import Update, StreamType
+from py_tgcalls.types.stream import StreamAudioEnded
 from yt_dlp import YoutubeDL
 
 # Globals for queues and states per chat_id
