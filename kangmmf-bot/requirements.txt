@@ -3,4 +3,5 @@ tgcrypto
 pillow
 requests
 aiohttp
+ffmpeg-python
 
