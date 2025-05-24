@@ -1,12 +1,10 @@
 import asyncio
-from pyrogram import Client
-from pyrogram.types import CallbackQuery
 from collections import deque
-from pyrogram import filters
+from pyrogram import filters, Client
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
 from pytgcalls import PyTgCalls
 from pytgcalls.exceptions import NoActiveGroupCall
-from pytgcalls.types import Update
+from pytgcalls.types import Update, StreamType
 from pytgcalls.types.stream import StreamAudioEnded
 from yt_dlp import YoutubeDL
 
@@ -31,36 +29,6 @@ ydl = YoutubeDL(YTDL_OPTS)
 pytgcalls = None
 client = None
 
-def init_music(app):
-    global client, pytgcalls
-    client = app
-    pytgcalls = PyTgCalls(client)
-
-    # Register event handlers
-    client.add_handler(filters.command("play")(cmd_play))
-    client.add_handler(filters.command("skip")(cmd_skip))
-    client.add_handler(filters.command("pause")(cmd_pause))
-    client.add_handler(filters.command("resume")(cmd_resume))
-    client.add_handler(filters.command("stop")(cmd_stop))
-    client.add_handler(filters.callback_query(filters.regex("^music_"))(callback_handler))
-
-    # Register pytgcalls event for end of stream
-    @pytgcalls.on_stream_end()
-    async def on_stream_end_handler(_, update: Update):
-        if isinstance(update, StreamAudioEnded):
-            chat_id = update.chat_id
-            await play_next(chat_id)
-
-async def get_audio_url(search: str):
-    """
-    Get direct audio URL from YouTube search or URL
-    """
-    loop = asyncio.get_event_loop()
-    info = await loop.run_in_executor(None, lambda: ydl.extract_info(search, download=False))
-    if 'entries' in info:
-        info = info['entries'][0]  # first search result
-    return info['url'], info.get('title', 'Unknown title')
-
 def keyboard(chat_id):
     buttons = [
         [
@@ -72,14 +40,27 @@ def keyboard(chat_id):
     ]
     return InlineKeyboardMarkup(buttons)
 
+async def get_audio_url(search: str):
+    """
+    Get direct audio URL from YouTube search or URL
+    """
+    loop = asyncio.get_event_loop()
+    info = await loop.run_in_executor(None, lambda: ydl.extract_info(search, download=False))
+    if 'entries' in info:
+        info = info['entries'][0]  # first search result
+    return info['url'], info.get('title', 'Unknown title')
+
 async def start_playback(chat_id):
     """
     Start playing audio for chat_id if queue is not empty
     """
     if chat_id not in queues or not queues[chat_id]:
         # No more songs in queue
-        playback_states[chat_id] = {"paused": False}
-        await pytgcalls.leave_group_call(chat_id)
+        playback_states.pop(chat_id, None)
+        try:
+            await pytgcalls.leave_group_call(chat_id)
+        except Exception:
+            pass
         return
 
     song = queues[chat_id][0]  # current song
@@ -88,14 +69,16 @@ async def start_playback(chat_id):
     try:
         await pytgcalls.join_group_call(
             chat_id,
-            # Audio stream input (use pytgcalls AudioPiped or similar)
-            pytgcalls.streams.AudioPiped(audio_url),
-            stream_type=pytgcalls.StreamType().pulse_stream  # or 'local_stream'
+            PyTgCalls.streams.AudioPiped(audio_url),
+            stream_type=StreamType().pulse_stream
         )
     except NoActiveGroupCall:
         await client.send_message(chat_id, "❌ Please start a voice chat in this group first!")
         queues.pop(chat_id, None)
         playback_states.pop(chat_id, None)
+        return
+    except Exception as e:
+        await client.send_message(chat_id, f"⚠️ Failed to join voice chat: {e}")
         return
 
     playback_states[chat_id] = {"paused": False}
@@ -112,14 +95,20 @@ async def play_next(chat_id):
     """
     if chat_id not in queues or not queues[chat_id]:
         playback_states.pop(chat_id, None)
-        await pytgcalls.leave_group_call(chat_id)
+        try:
+            await pytgcalls.leave_group_call(chat_id)
+        except Exception:
+            pass
         await client.send_message(chat_id, "Playlist ended, leaving voice chat.")
         return
 
     queues[chat_id].popleft()
     if not queues[chat_id]:
         playback_states.pop(chat_id, None)
-        await pytgcalls.leave_group_call(chat_id)
+        try:
+            await pytgcalls.leave_group_call(chat_id)
+        except Exception:
+            pass
         await client.send_message(chat_id, "Playlist ended, leaving voice chat.")
         return
 
@@ -127,17 +116,15 @@ async def play_next(chat_id):
 
 # === Command handlers ===
 
-async def cmd_play(client, message: Message):
+async def cmd_play(client: Client, message: Message):
     chat_id = message.chat.id
 
-    # Check if user provided query
     if len(message.command) < 2:
         await message.reply("Usage: /play <YouTube URL or search keywords>")
         return
 
     query = " ".join(message.command[1:])
 
-    # Fetch audio url and title
     try:
         url, title = await get_audio_url(query)
     except Exception as e:
@@ -155,11 +142,11 @@ async def cmd_play(client, message: Message):
 
     await message.reply(f"Added to queue: **{title}**")
 
-    # If nothing playing, start playing
-    if chat_id not in playback_states or not playback_states[chat_id].get("paused") is False and len(queues[chat_id]) == 1:
+    # If nothing is playing, start playback
+    if chat_id not in playback_states and len(queues[chat_id]) == 1:
         await start_playback(chat_id)
 
-async def cmd_skip(client, message: Message):
+async def cmd_skip(client: Client, message: Message):
     chat_id = message.chat.id
     if chat_id not in queues or not queues[chat_id]:
         await message.reply("No music is currently playing.")
@@ -167,7 +154,7 @@ async def cmd_skip(client, message: Message):
     await play_next(chat_id)
     await message.reply("⏭ Skipped current track.")
 
-async def cmd_pause(client, message: Message):
+async def cmd_pause(client: Client, message: Message):
     chat_id = message.chat.id
     if chat_id not in playback_states or playback_states[chat_id].get("paused", False):
         await message.reply("Music is not playing.")
@@ -179,7 +166,7 @@ async def cmd_pause(client, message: Message):
     except Exception as e:
         await message.reply(f"Failed to pause: {e}")
 
-async def cmd_resume(client, message: Message):
+async def cmd_resume(client: Client, message: Message):
     chat_id = message.chat.id
     if chat_id not in playback_states or not playback_states[chat_id].get("paused", False):
         await message.reply("Music is not paused.")
@@ -191,14 +178,17 @@ async def cmd_resume(client, message: Message):
     except Exception as e:
         await message.reply(f"Failed to resume: {e}")
 
-async def cmd_stop(client, message: Message):
+async def cmd_stop(client: Client, message: Message):
     chat_id = message.chat.id
     if chat_id not in queues:
         await message.reply("No music is playing.")
         return
     queues.pop(chat_id, None)
     playback_states.pop(chat_id, None)
-    await pytgcalls.leave_group_call(chat_id)
+    try:
+        await pytgcalls.leave_group_call(chat_id)
+    except Exception:
+        pass
     await message.reply("⏹ Stopped playback and cleared the queue.")
 
 # === Callback query handler for inline buttons ===
@@ -248,5 +238,27 @@ async def callback_handler(client: Client, cq: CallbackQuery):
         except Exception:
             pass
         await cq.answer("Stopped playback ✅", show_alert=False)
-        # Also remove inline buttons
         await client.edit_message_reply_markup(chat_id, cq.message.message_id, reply_markup=None)
+
+def init_music(app: Client):
+    global client, pytgcalls
+    client = app
+    pytgcalls = PyTgCalls(client)
+
+    # Register event handlers
+    app.add_handler(filters.command("play")(cmd_play))
+    app.add_handler(filters.command("skip")(cmd_skip))
+    app.add_handler(filters.command("pause")(cmd_pause))
+    app.add_handler(filters.command("resume")(cmd_resume))
+    app.add_handler(filters.command("stop")(cmd_stop))
+    app.add_handler(filters.callback_query(filters.regex("^music_"))(callback_handler))
+
+    # Start pytgcalls
+    pytgcalls.start()
+
+    # Listen for audio end event to play next track
+    @pytgcalls.on_stream_end()
+    async def on_stream_end(_, update: Update):
+        if isinstance(update, StreamAudioEnded):
+            chat_id = update.chat_id
+            await play_next(chat_id)
