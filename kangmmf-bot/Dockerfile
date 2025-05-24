@@ -1,6 +1,6 @@
 # Use official slim Python base image
 FROM python:3.11-slim
-
+#work dammit
 # Install FFmpeg, pip, and fonts
 RUN apt-get update && \
     apt-get install -y ffmpeg python3-pip fonts-dejavu-core && \
