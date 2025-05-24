@@ -6,16 +6,16 @@ def convert_video_to_webm(input_path: str, output_path: str) -> bool:
 
     cmd = [
         "ffmpeg",
-        "-y",                      # Overwrite output
-        "-i", input_path,          # Input file
-        "-ss", "0",                # Start time
-        "-t", "3",                 # Max duration (3s)
-        "-vf", "scale=trunc(min(512\,iw)/2)*2:trunc(min(512\,ih)/2)*2,setsar=1",  # Force even dimensions
-        "-c:v", "libvpx-vp9",      # VP9 codec
-        "-b:v", "512K",            # Bitrate
-        "-pix_fmt", "yuva420p",    # Transparency support
-        "-auto-alt-ref", "0",      # Disable alternate reference frames
-        "-an",                     # No audio
+        "-y",
+        "-i", input_path,
+        "-ss", "0",
+        "-t", "3",
+        "-vf", "scale='min(512,iw)':min'(512,ih)':force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000",
+        "-c:v", "libvpx-vp9",
+        "-b:v", "512K",
+        "-pix_fmt", "yuva420p",
+        "-an",
+        "-auto-alt-ref", "0",
         output_path
     ]
 
