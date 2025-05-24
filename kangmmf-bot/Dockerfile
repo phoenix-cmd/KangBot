@@ -1,7 +1,7 @@
 # Use official slim Python base image
 FROM python:3.11-slim
 
-# Install ffmpeg and system dependencies
+# Install FFmpeg, pip, and fonts
 RUN apt-get update && \
     apt-get install -y ffmpeg python3-pip fonts-dejavu-core && \
     apt-get clean && \
@@ -14,7 +14,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire bot source
+# Copy bot source code
 COPY . .
 
 # Start the bot
