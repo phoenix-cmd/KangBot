@@ -5,5 +5,5 @@ requests
 aiohttp
 ffmpeg-python
 yt-dlp
-git+https://github.com/pytgcalls/tgcalls.git@v2.0.0
+tgcalls
 pytgcalls==2.1.0
