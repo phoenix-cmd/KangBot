@@ -44,7 +44,7 @@ Made with ❤️ by AFC Engineers."""
 
 if __name__ == "__main__":
     try:
-    app.run()
-except FloodWait as e:
-    print(f"FloodWait: Need to wait {e.value} seconds. Sleeping...")
-    time.sleep(e.value)
+        app.run()
+    except FloodWait as e:
+        print(f"FloodWait: Need to wait {e.value} seconds. Sleeping...")
+        time.sleep(e.value)
