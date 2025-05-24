@@ -20,21 +20,15 @@ jobs:
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version
 
-      - name: Build tgcalls wheel (x86_64)
-        run: |
-          docker-compose up tgcalls_x86_64
-          mkdir -p ./output
-          cp dist/*.whl ./output/
       - name: Create dummy .env file if not present
         run: |
-          touch pytgcalls/.env
+          touch .env  # root level .env for docker-compose
 
       - name: Build tgcalls wheel (x86_64)
         run: |
           docker-compose up tgcalls_x86_64
           mkdir -p ./output
           cp dist/*.whl ./output/
-
 
       - name: Upload wheel as artifact
         uses: actions/upload-artifact@v4
