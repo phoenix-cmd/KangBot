@@ -1,7 +1,7 @@
 name: Build tgcalls Python wheel
 
 on:
-  workflow_dispatch:  # Manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   build-wheel:
@@ -24,7 +24,7 @@ jobs:
           cp dist/*.whl ./output/
 
       - name: Upload wheel as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tgcalls-wheel
           path: ./output/*.whl
