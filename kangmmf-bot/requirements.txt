@@ -4,5 +4,5 @@ Pillow==10.2.0
 requests
 aiohttp
 ffmpeg-python
-py-tgcalls
+pytgcalls
 yt-dlp
