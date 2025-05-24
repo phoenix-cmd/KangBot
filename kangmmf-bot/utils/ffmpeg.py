@@ -1,21 +1,21 @@
 import subprocess
 import os
 
-
-
 def convert_video_to_webm(input_path: str, output_path: str) -> bool:
     os.makedirs("temp", exist_ok=True)
 
     cmd = [
         "ffmpeg",
-        "-y",                      # overwrite without asking
-        "-i", input_path,          # input file
-        "-ss", "0",                # start at 0s
-        "-t", "3",                 # duration 3s
-        "-vf", "scale=512:-1",     # resize to 512px wide (Telegram sticker size)
-        "-c:v", "libvpx-vp9",      # VP9 codec (Telegram-compatible)
-        "-b:v", "256K",            # bitrate
-        "-an",                     # no audio
+        "-y",                      # Overwrite output
+        "-i", input_path,          # Input file
+        "-ss", "0",                # Start time
+        "-t", "3",                 # Max duration (3s)
+        "-vf", "scale=trunc(min(512\,iw)/2)*2:trunc(min(512\,ih)/2)*2,setsar=1",  # Force even dimensions
+        "-c:v", "libvpx-vp9",      # VP9 codec
+        "-b:v", "512K",            # Bitrate
+        "-pix_fmt", "yuva420p",    # Transparency support
+        "-auto-alt-ref", "0",      # Disable alternate reference frames
+        "-an",                     # No audio
         output_path
     ]
 
