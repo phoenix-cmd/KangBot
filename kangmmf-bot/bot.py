@@ -4,7 +4,7 @@ import shutil
 from pyrogram import filters
 from pyrogram.types import Message
 from pyrogram.errors import FloodWait
-
+import time
 from client import app  # Moved Client init to client.py
 
 from handlers.kang import kang_handler
@@ -44,8 +44,7 @@ Made with ❤️ by AFC Engineers."""
 
 if __name__ == "__main__":
     try:
-        app.run()
-    except FloodWait as e:
-        print(f"FloodWait: Need to wait {e.x} seconds. Sleeping...")
-        asyncio.run(asyncio.sleep(e.x))
-        print("Resuming...")
+    app.run()
+except FloodWait as e:
+    print(f"FloodWait: Need to wait {e.value} seconds. Sleeping...")
+    time.sleep(e.value)
