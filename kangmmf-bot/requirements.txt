@@ -1,6 +1,6 @@
 pyrogram==2.0.106
 tgcrypto
-pillow
+Pillow==10.2.0
 requests
 aiohttp
 ffmpeg-python
