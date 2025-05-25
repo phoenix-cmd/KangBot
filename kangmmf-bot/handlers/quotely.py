@@ -5,6 +5,7 @@ from pyrogram import filters
 from pyrogram.types import Message
 from client import app
 from dotenv import load_dotenv
+import traceback
 
 load_dotenv()
 
@@ -169,4 +170,5 @@ async def quotely(client, message: Message):
         await message.reply_photo(photo=buffer)
 
     except Exception as e:
-        await message.reply_text(f"❌ Exception occurred:\n`{e}`")
+        tb = traceback.format_exc()
+    await message.reply_text(f"❌ Exception occurred:\n`{tb}`")
