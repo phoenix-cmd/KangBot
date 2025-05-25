@@ -14,25 +14,25 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Constants
-FONT_PATH_BOLD = "fonts/ProductSans-Bold.ttf"  # Match QuotLyBot
-FONT_PATH_REGULAR = "fonts/ProductSans-Regular.ttf"
+FONT_PATH_BOLD = "fonts/Roboto-Bold.ttf"
+FONT_PATH_REGULAR = "fonts/Roboto-Medium.ttf"
 IMG_WIDTH = 512
 PADDING = 20
 AVATAR_SIZE = 40
-LINE_SPACING = 6
+LINE_SPACING = 10
 SPACING_BETWEEN_MESSAGES = 25
 MAX_STICKER_WIDTH = 150
-COLOR_USERNAME = (32, 33, 36)   # #202124
-COLOR_MESSAGE = (60, 64, 67)    # #3c4043
-BG_COLOR_DEFAULT = "#f1f3f4"    # QuotLy background
+
 
 def is_hex_color(s):
     return bool(re.fullmatch(r"#?[0-9a-fA-F]{6}", s))
+
 
 def truncate_text(text, max_width, font):
     while font.getbbox(text + "…")[2] > max_width and len(text) > 0:
         text = text[:-1]
     return text + "…" if len(text) > 0 else text
+
 
 async def fetch_user_photo(client, user):
     try:
@@ -41,10 +41,15 @@ async def fetch_user_photo(client, user):
             bio = io.BytesIO()
             await client.download_media(photos.photos[0], file=bio)
             bio.seek(0)
-            return Image.open(bio).convert("RGBA")
+            img = Image.open(bio).convert("RGBA")
+            logger.info(f"Fetched avatar for user {user.id}")
+            return img
+        else:
+            logger.info(f"No avatar found for user {user.id}")
     except Exception as e:
         logger.warning(f"Failed to fetch photo for {user.id if user else 'unknown'}: {e}")
     return None
+
 
 def make_rounded_avatar(img, size=AVATAR_SIZE):
     img = img.resize((size, size), Image.LANCZOS)
@@ -55,7 +60,27 @@ def make_rounded_avatar(img, size=AVATAR_SIZE):
     output.putalpha(mask)
     return output
 
-def draw_text(draw, position, text, font, max_width, fill):
+
+def draw_initials(draw, initials, position, size=AVATAR_SIZE):
+    # Background circle
+    radius = size // 2
+    x, y = position
+    circle_box = (x, y, x + size, y + size)
+    draw.ellipse(circle_box, fill=(120, 120, 120, 255))
+
+    # Initials text
+    font_size = size // 2
+    try:
+        font = ImageFont.truetype(FONT_PATH_BOLD, font_size)
+    except IOError:
+        font = ImageFont.load_default()
+    w, h = draw.textsize(initials, font=font)
+    text_x = x + (size - w) // 2
+    text_y = y + (size - h) // 2 - 2
+    draw.text((text_x, text_y), initials, font=font, fill=(255, 255, 255, 255))
+
+
+def draw_text(draw, position, text, font, max_width, fill=(0, 0, 0)):
     words = text.split()
     lines = []
     line = ""
@@ -75,14 +100,16 @@ def draw_text(draw, position, text, font, max_width, fill):
     for line in lines:
         draw.text((position[0], y), line, font=font, fill=fill)
         line_height = draw.textbbox((0, 0), line, font=font)[3]
-        y += line_height + LINE_SPACING
+        y += line_height + 4
     return y
+
 
 async def get_sticker_png(client, sticker):
     with tempfile.TemporaryDirectory() as tmpdir:
         file_path = os.path.join(tmpdir, "sticker.webp")
         await sticker.download(file_path)
         return Image.open(file_path).convert("RGBA")
+
 
 async def gather_messages(message: Message, count: int = 1):
     messages = []
@@ -106,10 +133,11 @@ async def gather_messages(message: Message, count: int = 1):
     messages.append(message)
     return messages
 
+
 @app.on_message(filters.command("q"))
 async def quotely_handler(client, message: Message):
     count = 1
-    bg_color = BG_COLOR_DEFAULT
+    bg_color = "white"
     show_avatar = True
 
     if len(message.command) > 1:
@@ -122,41 +150,48 @@ async def quotely_handler(client, message: Message):
                 "white", "black", "red", "green", "blue",
                 "yellow", "pink", "purple", "orange", "gray"
             ):
-                bg_color = arg if arg.startswith("#") else f"#{arg}" if is_hex_color(arg) else arg.lower()
+                # Normalize color to hex or named
+                if arg.startswith("#") or is_hex_color(arg):
+                    bg_color = arg if arg.startswith("#") else f"#{arg}"
+                else:
+                    bg_color = arg.lower()
 
     messages = await gather_messages(message, count=count)
     if not messages:
         await message.reply("No messages to quote!")
         return
 
-    font_username = ImageFont.truetype(FONT_PATH_BOLD, 23)
-    font_message = ImageFont.truetype(FONT_PATH_REGULAR, 19)
+    font_username = ImageFont.truetype(FONT_PATH_BOLD, 22)
+    font_message = ImageFont.truetype(FONT_PATH_REGULAR, 18)
     max_width = IMG_WIDTH - PADDING * 2
 
     avatars = {}
     total_height = PADDING
 
+    # Fetch avatars once per user
     for msg in messages:
         user = msg.from_user
         if show_avatar and user and user.id not in avatars:
             avatars[user.id] = await fetch_user_photo(client, user)
 
+    # Calculate total height needed for image
     for msg in messages:
         total_height += AVATAR_SIZE + 5 if show_avatar else 5
         username = msg.from_user.first_name if msg.from_user else (msg.forward_sender_name or "Unknown")
-        username_height = draw_text(ImageDraw.Draw(Image.new("RGBA", (1, 1))), (0, 0), username, font_username, max_width, COLOR_USERNAME)
+        dummy_draw = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+        username_height = draw_text(dummy_draw, (0, 0), username, font_username, max_width)
         total_height += username_height + 5
 
         text_content = msg.text or msg.caption
         if text_content:
             dummy_img = Image.new("RGBA", (max_width, 1000))
             draw = ImageDraw.Draw(dummy_img)
-            y_end = draw_text(draw, (0, 0), text_content, font_message, max_width, COLOR_MESSAGE)
+            y_end = draw_text(draw, (0, 0), text_content, font_message, max_width)
             total_height += y_end + LINE_SPACING
         elif msg.sticker:
             total_height += 150 + LINE_SPACING
         else:
-            unsupported_height = draw_text(ImageDraw.Draw(Image.new("RGBA", (1, 1))), (0, 0), "[Unsupported content]", font_message, max_width, COLOR_MESSAGE)
+            unsupported_height = draw_text(dummy_draw, (0, 0), "[Unsupported content]", font_message, max_width)
             total_height += unsupported_height + LINE_SPACING
 
         total_height += SPACING_BETWEEN_MESSAGES
@@ -176,17 +211,19 @@ async def quotely_handler(client, message: Message):
                 rounded = make_rounded_avatar(avatar)
                 img.paste(rounded, (PADDING, y_offset), rounded)
             else:
-                draw.ellipse((PADDING, y_offset, PADDING + AVATAR_SIZE, y_offset + AVATAR_SIZE), fill=(180, 180, 180, 255))
+                # Draw fallback circle with initials if no avatar
+                initials = "".join([part[0] for part in username.split() if part]).upper()[:2] or "?"
+                draw_initials(draw, initials, (PADDING, y_offset))
         x_text = PADDING + AVATAR_SIZE + 10 if show_avatar else PADDING
         y_text = y_offset
         username = truncate_text(username, max_width - AVATAR_SIZE if show_avatar else max_width, font_username)
-        draw.text((x_text, y_text), username, font=font_username, fill=COLOR_USERNAME)
+        draw.text((x_text, y_text), username, font=font_username, fill=(0, 0, 0))
         username_height = draw.textbbox((0, 0), username, font=font_username)[3]
         y_text += username_height + 5
 
         text_content = msg.text or msg.caption
         if text_content:
-            y_text = draw_text(draw, (x_text, y_text), text_content, font_message, max_width - AVATAR_SIZE - 10 if show_avatar else max_width, COLOR_MESSAGE)
+            y_text = draw_text(draw, (x_text, y_text), text_content, font_message, max_width - AVATAR_SIZE - 10 if show_avatar else max_width)
             y_text += LINE_SPACING
         elif msg.sticker:
             sticker_img = await get_sticker_png(client, msg.sticker)
@@ -196,7 +233,7 @@ async def quotely_handler(client, message: Message):
             img.paste(sticker_img, (x_text, y_text), sticker_img)
             y_text += new_size[1] + LINE_SPACING
         else:
-            draw.text((x_text, y_text), "[Unsupported content]", font=font_message, fill=COLOR_MESSAGE)
+            draw.text((x_text, y_text), "[Unsupported content]", font=font_message, fill=(0, 0, 0))
             unsupported_height = draw.textbbox((0, 0), "[Unsupported content]", font=font_message)[3]
             y_text += unsupported_height + LINE_SPACING
 
