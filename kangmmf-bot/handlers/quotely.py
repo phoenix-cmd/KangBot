@@ -9,7 +9,6 @@ from pyrogram import filters
 from pyrogram.types import Message
 from client import app
 
-
 # Setup logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -89,31 +88,48 @@ async def get_sticker_png(client, sticker):
         return Image.open(file_path).convert("RGBA")
 
 
-async def gather_messages(message: Message):
+async def gather_messages(message: Message, count: int = 1):
     messages = []
     if message.reply_to_message:
         current = message.reply_to_message
-        while current:
-            messages.insert(0, current)
-            current = current.reply_to_message
+        for _ in range(count):
+            if current:
+                messages.insert(0, current)
+                current = current.reply_to_message
+    else:
+        chat_id = message.chat.id
+        current_id = message.id - 1
+        while len(messages) < count and current_id > 0:
+            try:
+                msg = await message.client.get_messages(chat_id, current_id)
+                if msg:
+                    messages.insert(0, msg)
+                current_id -= 1
+            except Exception:
+                break
     messages.append(message)
     return messages
 
 
-@app.on_message(filters.command("q") & filters.reply)
+@app.on_message(filters.command("q"))
 async def quotely_handler(client, message: Message):
+    count = 1
     bg_color = "white"
-    if len(message.command) > 1:
-        requested_color = message.command[1].lower()
-        if requested_color in (
-            "white", "black", "red", "green", "blue",
-            "yellow", "pink", "purple", "orange", "gray"
-        ):
-            bg_color = requested_color
-        elif is_hex_color(requested_color):
-            bg_color = requested_color if requested_color.startswith("#") else f"#{requested_color}"
+    show_avatar = True
 
-    messages = await gather_messages(message)
+    if len(message.command) > 1:
+        for arg in message.command[1:]:
+            if arg.isdigit():
+                count = min(int(arg), 10)
+            elif arg.lower() == "avataroff":
+                show_avatar = False
+            elif is_hex_color(arg) or arg.lower() in (
+                "white", "black", "red", "green", "blue",
+                "yellow", "pink", "purple", "orange", "gray"
+            ):
+                bg_color = arg if arg.startswith("#") else f"#{arg}" if is_hex_color(arg) else arg.lower()
+
+    messages = await gather_messages(message, count=count)
     if not messages:
         await message.reply("No messages to quote!")
         return
@@ -125,15 +141,13 @@ async def quotely_handler(client, message: Message):
     avatars = {}
     total_height = PADDING
 
-    # Fetch avatars
     for msg in messages:
         user = msg.from_user
-        if user and user.id not in avatars:
+        if show_avatar and user and user.id not in avatars:
             avatars[user.id] = await fetch_user_photo(client, user)
 
-    # Calculate height
     for msg in messages:
-        total_height += AVATAR_SIZE + 5
+        total_height += AVATAR_SIZE + 5 if show_avatar else 5
         username = msg.from_user.first_name if msg.from_user else (msg.forward_sender_name or "Unknown")
         username_height = draw_text(ImageDraw.Draw(Image.new("RGBA", (1, 1))), (0, 0), username, font_username, max_width)
         total_height += username_height + 5
@@ -162,22 +176,22 @@ async def quotely_handler(client, message: Message):
         username = user.first_name if user else (msg.forward_sender_name or "Unknown")
         avatar = avatars.get(user.id) if user else None
 
-        if avatar:
-            rounded = make_rounded_avatar(avatar)
-            img.paste(rounded, (PADDING, y_offset), rounded)
-        else:
-            draw.ellipse((PADDING, y_offset, PADDING + AVATAR_SIZE, y_offset + AVATAR_SIZE), fill=(180, 180, 180, 255))
-
-        x_text = PADDING + AVATAR_SIZE + 10
+        if show_avatar:
+            if avatar:
+                rounded = make_rounded_avatar(avatar)
+                img.paste(rounded, (PADDING, y_offset), rounded)
+            else:
+                draw.ellipse((PADDING, y_offset, PADDING + AVATAR_SIZE, y_offset + AVATAR_SIZE), fill=(180, 180, 180, 255))
+        x_text = PADDING + AVATAR_SIZE + 10 if show_avatar else PADDING
         y_text = y_offset
-        username = truncate_text(username, max_width - AVATAR_SIZE, font_username)
+        username = truncate_text(username, max_width - AVATAR_SIZE if show_avatar else max_width, font_username)
         draw.text((x_text, y_text), username, font=font_username, fill=(0, 0, 0))
         username_height = draw.textbbox((0, 0), username, font=font_username)[3]
         y_text += username_height + 5
 
         text_content = msg.text or msg.caption
         if text_content:
-            y_text = draw_text(draw, (x_text, y_text), text_content, font_message, max_width - AVATAR_SIZE - 10)
+            y_text = draw_text(draw, (x_text, y_text), text_content, font_message, max_width - AVATAR_SIZE - 10 if show_avatar else max_width)
             y_text += LINE_SPACING
         elif msg.sticker:
             sticker_img = await get_sticker_png(client, msg.sticker)
@@ -191,7 +205,7 @@ async def quotely_handler(client, message: Message):
             unsupported_height = draw.textbbox((0, 0), "[Unsupported content]", font=font_message)[3]
             y_text += unsupported_height + LINE_SPACING
 
-        y_offset += max(AVATAR_SIZE + 5, y_text - y_offset)
+        y_offset += max(AVATAR_SIZE + 5 if show_avatar else 5, y_text - y_offset)
         y_offset += SPACING_BETWEEN_MESSAGES
 
     bio = io.BytesIO()
