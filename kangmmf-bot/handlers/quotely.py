@@ -3,7 +3,7 @@ import io
 import httpx
 from pyrogram import filters
 from pyrogram.types import Message
-from bot import app
+from client import app
 from PIL import Image
 from dotenv import load_dotenv
 
