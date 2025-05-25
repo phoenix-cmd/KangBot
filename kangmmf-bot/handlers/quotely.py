@@ -33,7 +33,7 @@ async def quotely(client, message: Message):
                     "first_name": reply.from_user.first_name if reply.from_user else None,
                     "username": reply.from_user.username if reply.from_user else None
                 },
-                "message_id": reply.message_id
+                "message_id": reply.id  # Fixed here
             }],
             "type": "quote"
         }
