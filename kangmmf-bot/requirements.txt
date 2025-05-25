@@ -6,4 +6,4 @@ aiohttp
 ffmpeg-python
 pytgcalls
 yt-dlp
-tgcalls
+tgcalls==2.0.0
