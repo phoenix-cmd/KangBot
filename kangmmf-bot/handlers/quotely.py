@@ -25,10 +25,16 @@ async def quotely(client, message: Message):
 
     try:
         # Prepare the message for the API
-        exported_message = await reply.export()
-
         payload = {
-            "messages": [exported_message],
+            "messages": [{
+                "text": reply.text or reply.caption or "",
+                "from_user": {
+                    "id": reply.from_user.id if reply.from_user else None,
+                    "first_name": reply.from_user.first_name if reply.from_user else None,
+                    "username": reply.from_user.username if reply.from_user else None
+                },
+                "message_id": reply.message_id
+            }],
             "type": "quote"
         }
 
