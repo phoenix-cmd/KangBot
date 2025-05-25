@@ -62,7 +62,7 @@ from client import app  # Moved Client init to client.py
 from handlers.kang import kang_handler
 from handlers.mmf import mmf_handler
 from handlers.group_admin import group_admin_handlers
-from handlers.quotely import quotely_handler
+from handlers.quotely import quotely
 
 # from music import init_music  # <-- import the music initializer
 
@@ -71,7 +71,7 @@ print("✅ FFmpeg found at:", shutil.which("ffmpeg"))
 # Add handlers
 app.add_handler(mmf_handler)
 app.add_handler(kang_handler)
-app.add_handler(quotely_handler)
+app.add_handler(quotely)
 for handler in group_admin_handlers:
     app.add_handler(handler)
 
