@@ -11,6 +11,7 @@ load_dotenv()
 QUOTE_API_URL = os.getenv("QUOTE_API_URL", "https://bot.lyo.su/quote")
 BOT_TOKEN = os.getenv("BOT_TOKEN")  # Add your bot token in .env
 
+
 async def fetch_user_big_file_id(client, user_id):
     """Get biggest profile photo file_id of user for the quote API."""
     try:
@@ -22,6 +23,18 @@ async def fetch_user_big_file_id(client, user_id):
     except Exception:
         return None
     return None
+
+
+async def get_telegram_file_url(client, file_id):
+    """Get direct Telegram file URL using bot token."""
+    try:
+        file = await client.get_file(file_id)
+        file_path = file.file_path
+        bot_token = BOT_TOKEN
+        return f"https://api.telegram.org/file/bot{bot_token}/{file_path}"
+    except Exception:
+        return None
+
 
 def extract_entities(message: Message):
     if not message.entities:
@@ -55,6 +68,7 @@ def extract_entities(message: Message):
         entities.append(ent)
     return entities
 
+
 async def build_user_info(client, user):
     if not user:
         return {
@@ -66,7 +80,9 @@ async def build_user_info(client, user):
     photo_field = {"url": f"https://dummyimage.com/100x100/888/fff&text={user.first_name[:1]}"}  # fallback
 
     if big_file_id:
-        photo_field = {"big_file_id": big_file_id}
+        telegram_file_url = await get_telegram_file_url(client, big_file_id)
+        if telegram_file_url:
+            photo_field = {"url": telegram_file_url}
 
     user_info = {
         "id": user.id,
@@ -76,19 +92,17 @@ async def build_user_info(client, user):
     }
     return user_info
 
-async def build_reply_message(client, reply_msg: Message):
+
+def build_reply_message(reply_msg: Message):
     if not reply_msg:
         return None
-
-    user_info = await build_user_info(client, reply_msg.from_user)
-
     return {
-        "name": user_info.get("name"),
+        "name": reply_msg.from_user.first_name if reply_msg.from_user else "Unknown",
         "text": reply_msg.text or reply_msg.caption or "",
         "entities": extract_entities(reply_msg),
-        "chatId": reply_msg.chat.id,
-        "from": user_info
+        "chatId": reply_msg.chat.id
     }
+
 
 async def build_message_obj(client, message: Message):
     user_info = await build_user_info(client, message.from_user)
@@ -107,9 +121,10 @@ async def build_message_obj(client, message: Message):
         "text": text,
         "avatar": True,
         "entities": extract_entities(message),
-        "replyMessage": await build_reply_message(client, message.reply_to_message) if message.reply_to_message else None
+        "replyMessage": build_reply_message(message.reply_to_message) if message.reply_to_message else None
     }
     return msg_obj
+
 
 @app.on_message(filters.command("q") & filters.reply)
 async def quotely(client, message: Message):
