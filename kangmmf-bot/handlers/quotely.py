@@ -4,7 +4,7 @@ import os
 import aiohttp
 import tempfile
 import logging
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageColor
 from pyrogram import filters
 from pyrogram.types import Message
 from client import app
@@ -26,6 +26,22 @@ MAX_STICKER_WIDTH = 150
 
 def is_hex_color(s):
     return bool(re.fullmatch(r"#?[0-9a-fA-F]{6}", s))
+
+
+def parse_color(color_str):
+    try:
+        return ImageColor.getrgb(color_str)
+    except Exception as e:
+        logger.warning(f"Invalid color '{color_str}', defaulting to white. Error: {e}")
+        return (255, 255, 255)
+
+
+def load_font(path, size):
+    try:
+        return ImageFont.truetype(path, size)
+    except Exception as e:
+        logger.warning(f"Could not load font {path}: {e}. Using default font.")
+        return ImageFont.load_default()
 
 
 def truncate_text(text, max_width, font):
@@ -129,13 +145,14 @@ async def quotely_handler(client, message: Message):
             ):
                 bg_color = arg if arg.startswith("#") else f"#{arg}" if is_hex_color(arg) else arg.lower()
 
+    logger.info(f"Parsed background color: {bg_color}")
     messages = await gather_messages(message, count=count)
     if not messages:
         await message.reply("No messages to quote!")
         return
 
-    font_username = ImageFont.truetype(FONT_PATH_BOLD, 22)
-    font_message = ImageFont.truetype(FONT_PATH_REGULAR, 18)
+    font_username = load_font(FONT_PATH_BOLD, 22)
+    font_message = load_font(FONT_PATH_REGULAR, 18)
     max_width = IMG_WIDTH - PADDING * 2
 
     avatars = {}
@@ -167,7 +184,7 @@ async def quotely_handler(client, message: Message):
         total_height += SPACING_BETWEEN_MESSAGES
 
     total_height += PADDING
-    img = Image.new("RGBA", (IMG_WIDTH, total_height), bg_color)
+    img = Image.new("RGBA", (IMG_WIDTH, total_height), parse_color(bg_color))
     draw = ImageDraw.Draw(img)
     y_offset = PADDING
 
