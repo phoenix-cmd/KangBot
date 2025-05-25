@@ -15,8 +15,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Constants
-FONT_PATH_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-FONT_PATH_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+FONT_PATH_BOLD = "fonts/Roboto-Bold.ttf"
+FONT_PATH_REGULAR = "fonts/Roboto-Medium.ttf"
 IMG_WIDTH = 512
 PADDING = 20
 AVATAR_SIZE = 40
