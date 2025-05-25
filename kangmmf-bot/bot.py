@@ -64,7 +64,7 @@ from handlers.mmf import mmf_handler
 from handlers.group_admin import group_admin_handlers
 from handlers.quotely import quotely_handler
 
-from music import init_music  # <-- import the music initializer
+# from music import init_music  # <-- import the music initializer
 
 print("✅ FFmpeg found at:", shutil.which("ffmpeg"))
 
@@ -76,7 +76,7 @@ for handler in group_admin_handlers:
     app.add_handler(handler)
 
 # Initialize music handlers, commands, and pytgcalls
-init_music(app)
+# init_music(app)
 
 @app.on_message(filters.command("start") & filters.private)
 async def start(_, message: Message):
