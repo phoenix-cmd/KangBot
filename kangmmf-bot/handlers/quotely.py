@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 QUOTE_API_URL = os.getenv("QUOTE_API_URL", "https://bot.lyo.su/quote")
+BOT_TOKEN = os.getenv("BOT_TOKEN")  # Load your bot token from .env
 
 async def fetch_user_photo(client, user_id):
     """Fetch user's biggest profile photo URL from Telegram."""
@@ -16,14 +17,9 @@ async def fetch_user_photo(client, user_id):
         photos = await client.get_profile_photos(user_id, limit=1)
         if photos.total_count > 0:
             photo = photos.photos[0]
-            # Get the biggest size photo file ID
             biggest = max(photo, key=lambda p: p.width * p.height)
-            # Get the file URL (use get_file and then download URL)
             file = await client.download_media(biggest.file_id, file=io.BytesIO())
-            # Telegram doesn't expose direct URL, so we upload to an image host or fallback
-            # For simplicity, let's return a local Telegram URL which bot.lyo.su can't fetch directly
-            # So we'll fallback to dummy or you can extend to upload to an image host
-            return None  # Can't provide direct URL, so return None for now
+            return None  # No direct URL available, return None for now
     except Exception:
         return None
     return None
@@ -61,7 +57,7 @@ def extract_entities(message: Message):
     return entities
 
 async def build_user_info(client, user):
-    """Build user info dict with real photo if possible."""
+    """Build user info dict with fallback avatar."""
     if not user:
         return {
             "id": 0,
@@ -70,7 +66,6 @@ async def build_user_info(client, user):
         }
     photo_url = await fetch_user_photo(client, user.id)
     if not photo_url:
-        # Fallback dummy avatar with initials or blank
         photo_url = f"https://dummyimage.com/100x100/888/fff&text={user.first_name[:1]}"
     return {
         "id": user.id,
@@ -81,7 +76,6 @@ async def build_user_info(client, user):
     }
 
 def build_reply_message(reply_msg: Message):
-    """Build the replied message for nested quote."""
     if not reply_msg:
         return None
     return {
@@ -92,18 +86,13 @@ def build_reply_message(reply_msg: Message):
     }
 
 async def build_message_obj(client, message: Message):
-    """Build message object with support for text, stickers, videos."""
-
     user_info = await build_user_info(client, message.from_user)
 
-    # Detect type and adjust text/fields
     if message.sticker:
-        # For stickers, pass emoji or a placeholder text
         text = message.sticker.emoji or "[Sticker]"
     elif message.video:
         text = "[Video]"
     elif message.document:
-        # Could check mime type, but fallback generic
         text = "[Document]"
     else:
         text = message.text or message.caption or ""
@@ -125,12 +114,17 @@ async def quotely(client, message: Message):
         await message.reply_text("❌ Quote API URL not configured.")
         return
 
+    if not BOT_TOKEN:
+        await message.reply_text("❌ Bot token is missing from environment.")
+        return
+
     if not reply:
         await message.reply_text("❌ You must reply to a message to quote it.")
         return
 
     try:
         payload = {
+            "botToken": BOT_TOKEN,  # <-- Added bot token here
             "backgroundColor": "#1E1E1E",
             "width": 512,
             "height": 768,
