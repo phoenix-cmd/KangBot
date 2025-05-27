@@ -50,9 +50,16 @@ def get_log_text(message: Message):
         f"{media_info}"
     )
 
-async def log_to_channel(client: Client, message: Message):
+async def log_to_channel(client: Client, message: Message, command=None):
     try:
         log_text = get_log_text(message)
+        if command:
+            # Replace the command text with the provided command name (with slash)
+            original_text = message.text or "<no text>"
+            log_text = log_text.replace(
+                f"<code>{original_text}</code>",
+                f"<code>/{command}</code>"
+            )
         await client.send_message(
             chat_id=LOG_CHANNEL_ID,
             text=log_text,
