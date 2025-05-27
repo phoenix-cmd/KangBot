@@ -1,6 +1,7 @@
 import os
 from pyrogram import filters
 from pyrogram.types import Message
+from client import app
 
 LOG_FILE_PATH = "bot.log"
 OWNER_ID = int(os.environ.get("OWNER_ID", 123456789))  # replace with your owner ID
