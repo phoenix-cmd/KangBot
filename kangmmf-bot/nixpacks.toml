@@ -1,19 +1,2 @@
-# [phases.setup]
-#     nixPkgs = ['...', 'ffmpeg']
 [phases.setup]
-nixPkgs = [
-  "python311",
-  "python311Packages.pip",
-  "cairo",
-  "pango",
-  "ffmpeg",
-  "gdk-pixbuf"
-]
-
-[phases.install]
-cmds = [
-  "pip install --no-cache-dir -r requirements.txt"
-]
-
-[start]
-cmd = "python bot.py"
+    nixPkgs = ['...', 'ffmpeg']
