@@ -12,6 +12,7 @@
 #     await kang_sticker(client, message, target)
 
 # kang_handler = MessageHandler(kang_command, filters.command("kang"))
+import logging
 from pyrogram import filters
 from pyrogram.types import Message
 from pyrogram.handlers import MessageHandler
@@ -27,5 +28,7 @@ async def kang_command(client, message: Message):
     await kang_sticker(client, message, target)
 
     await log_to_channel(client, message, command="kang")
+    logging.info(f"/kang used by user {message.from_user.id} in chat {message.chat.id}")
 
 kang_handler = MessageHandler(kang_command, filters.command("kang"))
+
