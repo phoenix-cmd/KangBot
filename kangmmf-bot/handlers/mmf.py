@@ -210,6 +210,8 @@
 import os
 import subprocess
 from PIL import Image, ImageDraw, ImageFont
+import cairocffi as cairo
+import pangocffi
 import requests
 import imghdr
 from pyrogram import filters
@@ -252,6 +254,28 @@ def draw_meme_text(img: Image.Image, top_text: str, bottom_text: str) -> Image.I
         draw_centered_text(draw, img, top_text, 10, font)
     if bottom_text:
         draw_centered_text(draw, img, bottom_text, img.height - font_size - 10, font)
+    return img
+def draw_text_with_color_emoji(text, width, height, font_desc="Noto Sans 48"):
+    surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
+    ctx = cairo.Context(surface)
+
+    layout = pangocffi.create_layout(ctx)
+    layout.set_text(text)
+    layout.set_font_description(pangocffi.FontDescription(font_desc))
+
+    # Center text horizontally and vertically
+    ink_rect, logical_rect = layout.get_extents()
+    text_width = logical_rect.width / pangocffi.SCALE
+    text_height = logical_rect.height / pangocffi.SCALE
+    x = (width - text_width) / 2
+    y = (height - text_height) / 2
+
+    ctx.translate(x, y)
+    ctx.set_source_rgb(1, 1, 1)  # White text
+    pangocffi.show_layout(ctx, layout)
+
+    buf = surface.get_data()
+    img = Image.frombuffer("RGBA", (width, height), buf, "raw", "BGRA", 0, 1)
     return img
 
 def draw_text_on_frame(frame_path, top_text, bottom_text, font_path):
