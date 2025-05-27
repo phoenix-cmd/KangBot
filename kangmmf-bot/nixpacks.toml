@@ -1,2 +1,4 @@
+# [phases.setup]
+#     nixPkgs = ['...', 'ffmpeg']
 [phases.setup]
-    nixPkgs = ['...', 'ffmpeg',"cairo", "pango", "gobject-introspection", "glib"]
+nixPkgs = ["ffmpeg", "cairo", "pango", "gobject-introspection", "glib"]
