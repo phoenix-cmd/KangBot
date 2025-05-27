@@ -10,7 +10,7 @@ def convert_video_to_webm(input_path: str, output_path: str) -> bool:
         "-i", input_path,
         "-ss", "0",
         "-t", "3",
-        "-vf", "scale='min(512,iw)':min'(512,ih)':force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000",
+        "-vf", "scale='min(512,iw)':'min(512,ih)':force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000",
         "-c:v", "libvpx-vp9",
         "-b:v", "512K",
         "-pix_fmt", "yuva420p",
