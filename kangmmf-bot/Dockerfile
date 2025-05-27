@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y \
     fonts-noto-color-emoji \
     libcairo2 \
     libcairo2-dev \
-    libpango1.0-0 \
+    libpango-1.0-0 \
     libpango1.0-dev \
     libgdk-pixbuf2.0-0 \
     libgdk-pixbuf2.0-dev \
@@ -46,5 +46,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 CMD ["python", "bot.py"]
-
 
