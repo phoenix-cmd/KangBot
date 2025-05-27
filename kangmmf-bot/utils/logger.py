@@ -3,7 +3,7 @@ from datetime import datetime
 from pyrogram.types import Message
 from pyrogram import Client
 
-LOG_CHANNEL_ID = -1001234567890  # Replace with your log channel ID
+LOG_CHANNEL_ID = int(os.environ.get("LOG_CHANNEL_ID", -1001234567890))
 
 def get_human_readable_size(size_bytes):
     if size_bytes is None:
