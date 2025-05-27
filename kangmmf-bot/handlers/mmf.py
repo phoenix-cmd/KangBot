@@ -448,11 +448,6 @@ from pyrogram import filters
 from pyrogram.types import Message
 from pyrogram.handlers import MessageHandler
 import shutil
-import logging
-
-  
-
-logging.info(f"ffmpeg found at: {shutil.which('ffmpeg')}")
 
 TEMP_DIR = "temp"
 os.makedirs(TEMP_DIR, exist_ok=True)
@@ -462,12 +457,10 @@ FONT_PATH = os.path.join(TEMP_DIR, "NotoSans-Regular.ttf")
 
 def ensure_font():
     if not os.path.exists(FONT_PATH):
-        logging.info("Downloading Noto Sans font for emoji + Hindi support...")
         r = requests.get(FONT_URL)
         r.raise_for_status()
         with open(FONT_PATH, "wb") as f:
             f.write(r.content)
-        logging.info("Font downloaded.")
 
 def draw_centered_text(draw, img, text, y, font):
     bbox = draw.textbbox((0, 0), text, font=font)
@@ -577,8 +570,6 @@ async def mmf_command(client, message: Message):
             meme_video(video_path, raw_output_file, top_text, bottom_text, FONT_PATH)
             convert_to_telegram_sticker(raw_output_file, sticker_output_file)
             await message.reply_video_note(sticker_output_file, duration=3, length=512)
-            await log_to_channel(client, message, command="mmf")  # ✅ Logging to channel
-            logging.info(f"/mmf used by user {user_id} in chat {message.chat.id}")  # ✅ Local log
         except Exception as e:
             await message.reply(f"Failed to process video: `{e}`")
         finally:
