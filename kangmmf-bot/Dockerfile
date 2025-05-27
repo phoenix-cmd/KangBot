@@ -21,6 +21,7 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     fonts-dejavu-core \
+    fonts-noto-color-emoji \
     libcairo2 \
     libcairo2-dev \
     libpango-1.0-0 \
@@ -28,6 +29,7 @@ RUN apt-get update && apt-get install -y \
     libgdk-pixbuf2.0-0 \
     libgdk-pixbuf2.0-dev \
     libffi-dev \
+    pkg-config \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
@@ -40,3 +42,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 CMD ["python", "bot.py"]
+
