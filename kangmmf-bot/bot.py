@@ -113,7 +113,6 @@
 import os
 import asyncio
 import shutil
-import logging
 from pyrogram import filters
 from pyrogram.types import Message
 from pyrogram.errors import FloodWait
@@ -124,19 +123,6 @@ from handlers.kang import kang_handler
 from handlers.mmf import mmf_handler
 from handlers.group_admin import group_admin_handlers
 from handlers.quotely import quotely
-from handlers import showlogs
-
-# Configure logging
-LOG_FILE = "bot.log"
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s",
-    handlers=[
-        logging.FileHandler(LOG_FILE),
-        logging.StreamHandler()
-    ]
-)
-logging.info("Bot is starting...")
 
 print("✅ FFmpeg found at:", shutil.which("ffmpeg"))
 
