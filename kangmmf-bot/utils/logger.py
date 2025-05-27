@@ -39,14 +39,12 @@ def get_media_info(message: Message):
 def get_log_text(message: Message, command: str | None = None):
     user = message.from_user
     chat = message.chat
-    # Use passed command if available, else fallback to message text
     cmd_text = command or (message.text or "<no text>")
-    media_info = get_media_info(message)
-
-    # Escape user input to avoid invalid HTML parse errors
+    
     safe_user_name = html.escape(user.first_name)
     safe_chat_title = html.escape(chat.title) if chat.title else "Private"
     safe_cmd_text = html.escape(cmd_text)
+    safe_media_info = html.escape(get_media_info(message))
 
     return (
         f"📝 <b>Command Log</b>\n"
@@ -54,8 +52,9 @@ def get_log_text(message: Message, command: str | None = None):
         f"💬 <b>Chat:</b> {safe_chat_title} (<code>{chat.id}</code>)\n"
         f"🔠 <b>Command:</b> <code>{safe_cmd_text}</code>\n"
         f"🕓 <b>Time:</b> <code>{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</code>\n"
-        f"{media_info}"
+        f"{safe_media_info}"
     )
+
 
 async def log_to_channel(client: Client, message: Message, command: str | None = None):
     try:
