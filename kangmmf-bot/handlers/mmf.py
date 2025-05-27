@@ -450,9 +450,8 @@ from pyrogram.handlers import MessageHandler
 import shutil
 import logging
 
-from utils.logger import log_to_channel  
+  
 
-logging.basicConfig(level=logging.INFO)
 logging.info(f"ffmpeg found at: {shutil.which('ffmpeg')}")
 
 TEMP_DIR = "temp"
@@ -598,8 +597,6 @@ async def mmf_command(client, message: Message):
             meme_video(video_path, raw_output_file, top_text, bottom_text, FONT_PATH)
             convert_to_telegram_sticker(raw_output_file, sticker_output_file)
             await message.reply_video_note(sticker_output_file, duration=3, length=512)
-            await log_to_channel(client, message, command="mmf")  # ✅ Logging to channel
-            logging.info(f"/mmf used by user {user_id} in chat {message.chat.id}")  # ✅ Local log
         except Exception as e:
             await message.reply(f"Failed to process video sticker: `{e}`")
         finally:
@@ -631,8 +628,6 @@ async def mmf_command(client, message: Message):
             meme.save(meme_output, "JPEG")
 
             await message.reply_photo(meme_output, caption="Here's your meme!")
-            await log_to_channel(client, message, command="mmf")  # ✅ Logging to channel
-            logging.info(f"/mmf used by user {user_id} in chat {message.chat.id}")  # ✅ Local log
 
         except Exception as e:
             await message.reply(f"Image processing failed: `{e}`")
