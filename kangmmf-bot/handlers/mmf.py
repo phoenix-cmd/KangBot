@@ -300,19 +300,23 @@ def draw_text_on_frame(frame_path, top_text, bottom_text, font_path):
 def meme_video(input_video, output_video, top_text, bottom_text, font_path):
     frames_dir = os.path.join(TEMP_DIR, "frames")
     os.makedirs(frames_dir, exist_ok=True)
+    # Clean frames dir
     for f in os.listdir(frames_dir):
         os.remove(os.path.join(frames_dir, f))
 
+    # Extract frames resized to 512x512 (preserving aspect ratio) and padded, so text won't get cut
     subprocess.run([
         "ffmpeg", "-i", input_video,
-        "-vf", "scale=iw:ih",
+        "-vf", "scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2",
         f"{frames_dir}/frame_%04d.png"
     ], check=True)
 
+    # Draw meme text on resized/padded frames
     for filename in sorted(os.listdir(frames_dir)):
         if filename.endswith(".png"):
             draw_text_on_frame(os.path.join(frames_dir, filename), top_text, bottom_text, font_path)
 
+    # Re-encode video with VP9 and alpha support
     subprocess.run([
         "ffmpeg",
         "-framerate", "30",
@@ -323,6 +327,7 @@ def meme_video(input_video, output_video, top_text, bottom_text, font_path):
         output_video
     ], check=True)
 
+    # Clean frames dir after processing
     for f in os.listdir(frames_dir):
         os.remove(os.path.join(frames_dir, f))
 
