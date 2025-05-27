@@ -16,6 +16,7 @@
 
 # CMD ["python", "bot.py"]
 
+
 FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y \
@@ -24,14 +25,17 @@ RUN apt-get update && apt-get install -y \
     fonts-noto-color-emoji \
     libcairo2 \
     libcairo2-dev \
-    libpango-1.0-0 \
+    libpango1.0-0 \
     libpango1.0-dev \
     libgdk-pixbuf2.0-0 \
     libgdk-pixbuf2.0-dev \
     libffi-dev \
     pkg-config \
+    libglib2.0-0 \
+    libgtk-3-0 \
  && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/* \
+ && ldconfig
 
 WORKDIR /app
 
@@ -42,4 +46,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 CMD ["python", "bot.py"]
+
 
