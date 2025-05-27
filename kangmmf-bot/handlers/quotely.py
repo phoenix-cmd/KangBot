@@ -183,7 +183,6 @@ from client import app
 from dotenv import load_dotenv
 import traceback
 
-from utils.logger import log_to_channel  
 
 load_dotenv()
 
