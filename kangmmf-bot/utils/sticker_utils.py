@@ -217,11 +217,12 @@ async def kang_sticker(client, message: Message, target: Message):
 
                 cmd = [
                     "ffmpeg", "-y", "-i", input_path,
-                    "-vf", "scale='min(512,iw)':min'(512,ih)':force_original_aspect_ratio=decrease",
+                    "-vf", "scale=min(512\\,iw):min(512\\,ih):force_original_aspect_ratio=decrease",
                     "-c:v", "libvpx-vp9", "-b:v", "512K", "-an",
                     "-t", "3", "-pix_fmt", "yuva420p",
-                    output_path
-                ]
+                        output_path
+                        ]
+
                 proc = subprocess.run(cmd, capture_output=True, text=True)
                 if proc.returncode != 0:
                     await message.reply(f"FFmpeg error:\n`{proc.stderr.strip()}`")
