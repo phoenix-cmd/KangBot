@@ -6,18 +6,19 @@ nixPkgs = [
   "python3Packages.pip",
   "python3Packages.setuptools",
   "python3Packages.wheel",
+  "python3Packages.cffi",
   "ffmpeg",
   "cairo",
   "pango",
   "gobject-introspection",
   "glib",
-  "pkg-config",
-  "python3Packages.cffi"
+  "pkg-config"
 ]
 
-
 [phases.install]
-cmds = ["python3 -m pip install --no-cache-dir -r requirements.txt"]
+cmds = [
+  "python3 -m pip install --no-cache-dir -r requirements.txt"
+]
 
 [start]
 cmd = "python3 bot.py"
