@@ -450,7 +450,7 @@ from pyrogram.handlers import MessageHandler
 import shutil
 import logging
 
-from utils.logger import log_to_channel  # ✅ Log function import
+from utils.logger import log_to_channel  
 
 logging.basicConfig(level=logging.INFO)
 logging.info(f"ffmpeg found at: {shutil.which('ffmpeg')}")
@@ -629,7 +629,7 @@ async def mmf_command(client, message: Message):
             meme.save(meme_output, "JPEG")
 
             await message.reply_photo(meme_output, caption="Here's your meme!")
-            await log_to_channel(client, message, command="mmf")  # ✅ Logging
+            await log_to_channel(client, message, command="mmf") 
 
         except Exception as e:
             await message.reply(f"Image processing failed: `{e}`")
