@@ -1,4 +1,10 @@
 # [phases.setup]
 #     nixPkgs = ['...', 'ffmpeg']
 [phases.setup]
-nixPkgs = ["ffmpeg", "cairo", "pango", "gobject-introspection", "glib"]
+nixPkgs = ["python312", "pip", "ffmpeg", "cairo", "pango", "gobject-introspection", "glib"]
+
+[phases.install]
+cmds = ["pip install --no-cache-dir -r requirements.txt"]
+
+[start]
+cmd = "python bot.py"
