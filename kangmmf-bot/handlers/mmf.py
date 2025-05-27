@@ -210,8 +210,8 @@
 import os
 import subprocess
 from PIL import Image, ImageDraw, ImageFont
-import cairocffi as cairo
-import pangocffi
+# import cairocffi as cairo
+# import pangocffi
 import requests
 import imghdr
 from pyrogram import filters
