@@ -19,7 +19,6 @@
 
 FROM python:3.11
 
-# Install system packages
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     fonts-dejavu-core \
@@ -41,13 +40,12 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Install Python deps
 COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Start your bot
 CMD ["python", "bot.py"]
 
 
