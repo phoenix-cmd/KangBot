@@ -156,7 +156,6 @@ Here's what I can do:
 ✨ More features coming soon.  
 Made with ❤️ by AFC Engineers."""
     )
-    logging.info(f"/start command used by user {message.from_user.id}")
 
 if __name__ == "__main__":
     try:
