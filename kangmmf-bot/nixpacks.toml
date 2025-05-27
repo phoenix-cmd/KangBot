@@ -1,7 +1,7 @@
 # [phases.setup]
 #     nixPkgs = ['...', 'ffmpeg']
 [phases.setup]
-nixPkgs = ["python312", "pip", "ffmpeg", "cairo", "pango", "gobject-introspection", "glib"]
+nixPkgs = ["python312", "ffmpeg", "cairo", "pango", "gobject-introspection", "glib"]
 
 [phases.install]
 cmds = ["pip install --no-cache-dir -r requirements.txt"]
