@@ -8,7 +8,7 @@ if not API_KEY:
     raise Exception("API key not found in environment variable")
 
 GOOGLE_GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
-
+CHATBOT_TOGGLE_FILE = "enabled_chats.json"
 def load_enabled_chats():
     try:
         with open(CHATBOT_TOGGLE_FILE, "r") as f:
