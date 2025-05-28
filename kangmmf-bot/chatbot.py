@@ -24,7 +24,6 @@ enabled_chats = load_enabled_chats()
 async def generate_text_gemini(prompt: str) -> str:
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {GOOGLE_GEMINI_API_KEY}"
     }
     json_data = {
         "prompt": {
@@ -37,8 +36,9 @@ async def generate_text_gemini(prompt: str) -> str:
         response = await client.post(GOOGLE_GEMINI_API_URL, headers=headers, json=json_data)
         response.raise_for_status()
         data = response.json()
-        # Extract response text
+        # Depending on the API response format:
         return data.get("candidates", [{}])[0].get("output", "Sorry, I couldn't generate a response.")
+
 
 def register_chatbot_handlers(app):
     @app.on_message(filters.command("chatbot") & (filters.private | filters.group))
