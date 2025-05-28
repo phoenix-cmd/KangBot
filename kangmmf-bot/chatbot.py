@@ -3,7 +3,7 @@ import json
 import httpx
 from pyrogram import filters
 from pyrogram.types import Message
-
+API_KEY = os.getenv("GOOGLE_GEMINI_API_KEY")
 GOOGLE_GEMINI_API_KEY = os.getenv("GOOGLE_GEMINI_API_KEY")
 GOOGLE_GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText?key={API_KEY}"
 
