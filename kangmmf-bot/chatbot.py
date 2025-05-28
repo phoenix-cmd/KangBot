@@ -36,16 +36,12 @@ async def generate_text_gemini(prompt: str) -> str:
     }
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(GOOGLE_GEMINI_API_URL, headers=headers, json=json_data)
-        response.raise_for_status()
+        if response.status_code != 200:
+            print("Error response from API:", response.status_code, response.text)  # Add this line to see API error
+            response.raise_for_status()
         data = response.json()
         return data.get("candidates", [{}])[0].get("output", "Sorry, I couldn't generate a response.")
 
-    async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(GOOGLE_GEMINI_API_URL, headers=headers, json=json_data)
-        response.raise_for_status()
-        data = response.json()
-        # Depending on the API response format:
-        return data.get("candidates", [{}])[0].get("output", "Sorry, I couldn't generate a response.")
 
 
 def register_chatbot_handlers(app):
