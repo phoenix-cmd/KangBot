@@ -3,9 +3,11 @@ import json
 import httpx
 from pyrogram import filters
 from pyrogram.types import Message
-API_KEY = os.getenv("GOOGLE_GEMINI_API_KEY")
-GOOGLE_GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={API_KEY}"
-CHATBOT_TOGGLE_FILE = "enabled_chats.json"
+API_KEY = os.getenv("GOOGLE_GEMINI_API_KEY")  # <-- get from env here
+if not API_KEY:
+    raise Exception("API key not found in environment variable")
+
+GOOGLE_GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
 
 def load_enabled_chats():
     try:
