@@ -4,8 +4,8 @@ import httpx
 from pyrogram import filters
 from pyrogram.types import Message
 
-HF_API_URL = "https://api-inference.huggingface.co/models/gpt2"  # Change if you want another model
-HF_API_TOKEN = os.getenv("HF_API_TOKEN")
+GOOGLE_GEMINI_API_KEY = os.getenv("GOOGLE_GEMINI_API_KEY")
+GOOGLE_GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText"
 
 CHATBOT_TOGGLE_FILE = "enabled_chats.json"
 
@@ -24,26 +24,24 @@ def save_enabled_chats(enabled_chats):
 
 enabled_chats = load_enabled_chats()
 
-async def generate_text_hf(prompt: str) -> str:
+async def generate_text_gemini(prompt: str) -> str:
     headers = {
-        "Authorization": f"Bearer {HF_API_TOKEN}"
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {GOOGLE_GEMINI_API_KEY}"
     }
-    payload = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": 150,
-            "do_sample": True,
-            "top_p": 0.95,
-            "temperature": 0.7
-        }
+    json_data = {
+        "prompt": {
+            "text": prompt
+        },
+        "temperature": 0.7,
+        "maxOutputTokens": 256,
     }
-    async with httpx.AsyncClient() as client:
-        response = await client.post(HF_API_URL, headers=headers, json=payload, timeout=30)
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(GOOGLE_GEMINI_API_URL, headers=headers, json=json_data)
         response.raise_for_status()
-        result = response.json()
-        if isinstance(result, list) and "generated_text" in result[0]:
-            return result[0]["generated_text"]
-        return "Sorry, I couldn't generate a response."
+        data = response.json()
+        # Extract response text
+        return data.get("candidates", [{}])[0].get("output", "Sorry, I couldn't generate a response.")
 
 def register_chatbot_handlers(app):
     @app.on_message(filters.command("chatbot") & (filters.private | filters.group))
@@ -81,7 +79,7 @@ def register_chatbot_handlers(app):
         if message.from_user.is_bot:
             return
 
-        # Only reply to the bot in groups if it's replied to
+        # Only reply in groups if bot is replied to
         if message.chat.type != "private":
             if not message.reply_to_message or message.reply_to_message.from_user.id != client.me.id:
                 return
@@ -89,7 +87,7 @@ def register_chatbot_handlers(app):
         prompt = message.text
 
         try:
-            reply_text = await generate_text_hf(prompt)
+            reply_text = await generate_text_gemini(prompt)
             await message.reply_text(reply_text)
         except Exception as e:
             await message.reply_text("Something went wrong 🤖\n" + str(e))
