@@ -24,23 +24,22 @@ enabled_chats = load_enabled_chats()
 async def generate_text_gemini(prompt: str) -> str:
     headers = {
         "Content-Type": "application/json",
+        "Authorization": f"Bearer {GOOGLE_GEMINI_API_KEY}"
     }
     json_data = {
-        "content": [
-            {
-                "text": prompt
-            }
-        ],
-        "temperature": 0.7,
-        "maxOutputTokens": 256,
+        "prompt": {
+            "text": prompt
+        },
+        "candidateCount": 1
     }
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(GOOGLE_GEMINI_API_URL, headers=headers, json=json_data)
         if response.status_code != 200:
-            print("Error response from API:", response.status_code, response.text)  # Add this line to see API error
+            print("Error response from API:", response.status_code, response.text)
             response.raise_for_status()
         data = response.json()
         return data.get("candidates", [{}])[0].get("output", "Sorry, I couldn't generate a response.")
+
 
 
 
