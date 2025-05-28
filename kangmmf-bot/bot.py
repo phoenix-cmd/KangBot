@@ -123,6 +123,8 @@ from handlers.kang import kang_handler
 from handlers.mmf import mmf_handler
 from handlers.group_admin import group_admin_handlers
 from handlers.quotely import quotely
+from chatbot import *
+
 
 print("✅ FFmpeg found at:", shutil.which("ffmpeg"))
 
