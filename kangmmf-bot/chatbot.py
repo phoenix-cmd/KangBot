@@ -25,7 +25,7 @@ def save_enabled_chats(enabled_chats):
 enabled_chats = load_enabled_chats()
 
 # Command to toggle chatbot on/off
-@Client.on_message(filters.command("chatbot") & filters.group | filters.private)
+@Client.on_message(filters.text & (filters.private | filters.group))
 async def toggle_chatbot(client: Client, message: Message):
     if len(message.command) < 2:
         return await message.reply_text("Usage: `/chatbot on` or `/chatbot off`", quote=True)
@@ -53,7 +53,7 @@ async def toggle_chatbot(client: Client, message: Message):
         await message.reply_text("Usage: `/chatbot on` or `/chatbot off`")
 
 # Main handler for chatbot replies
-@Client.on_message(filters.text & ~filters.edited & (filters.private | filters.group))
+@Client.on_message(filters.text & (filters.private | filters.group))
 async def ai_chat_handler(client: Client, message: Message):
     chat_id = str(message.chat.id)
 
