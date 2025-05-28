@@ -5,7 +5,7 @@ from pyrogram import filters
 from pyrogram.types import Message
 API_KEY = os.getenv("GOOGLE_GEMINI_API_KEY")
 GOOGLE_GEMINI_API_KEY = os.getenv("GOOGLE_GEMINI_API_KEY")
-GOOGLE_GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
+GOOGLE_GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
 
 CHATBOT_TOGGLE_FILE = "enabled_chats.json"
 
