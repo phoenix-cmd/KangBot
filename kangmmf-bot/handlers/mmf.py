@@ -516,6 +516,7 @@ def meme_video(input_video, output_video, top_text, bottom_text, font_path):
 
     subprocess.run([
         "ffmpeg",
+        "-y"
         "-framerate", "30",
         "-i", f"{frames_dir}/frame_%04d.png",
         "-c:v", "libvpx-vp9",
@@ -530,6 +531,7 @@ def meme_video(input_video, output_video, top_text, bottom_text, font_path):
 def convert_to_telegram_sticker(input_webm, output_webm):
     subprocess.run([
         "ffmpeg",
+        "-y"
         "-i", input_webm,
         "-an",
         "-vf", "scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2",
