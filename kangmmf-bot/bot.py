@@ -123,12 +123,13 @@ from handlers.kang import kang_handler
 from handlers.mmf import mmf_handler
 from handlers.group_admin import group_admin_handlers
 from handlers.quotely import quotely
-from chatbot import *
+from chatbot import register_chatbot_handlers
 
 
 print("✅ FFmpeg found at:", shutil.which("ffmpeg"))
 
 # Add handlers
+register_chatbot_handlers(app)
 app.add_handler(mmf_handler)
 app.add_handler(kang_handler)
 app.add_handler(quotely)
