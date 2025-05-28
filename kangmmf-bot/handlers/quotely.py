@@ -340,7 +340,6 @@ async def quotely(client, message: Message):
         buffer.seek(0)
 
         await message.reply_photo(photo=buffer)
-        await log_to_channel(client, message, command="q") 
 
     except Exception as e:
         tb = traceback.format_exc()
