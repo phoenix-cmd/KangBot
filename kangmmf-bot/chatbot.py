@@ -26,12 +26,20 @@ async def generate_text_gemini(prompt: str) -> str:
         "Content-Type": "application/json",
     }
     json_data = {
-        "prompt": {
-            "text": prompt
-        },
+        "content": [
+            {
+                "text": prompt
+            }
+        ],
         "temperature": 0.7,
         "maxOutputTokens": 256,
     }
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(GOOGLE_GEMINI_API_URL, headers=headers, json=json_data)
+        response.raise_for_status()
+        data = response.json()
+        return data.get("candidates", [{}])[0].get("output", "Sorry, I couldn't generate a response.")
+
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(GOOGLE_GEMINI_API_URL, headers=headers, json=json_data)
         response.raise_for_status()
