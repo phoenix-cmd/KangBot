@@ -1,21 +1,29 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bullseye as build
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     ffmpeg \
     fonts-dejavu-core \
- && apt-get clean && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
 COPY requirements.txt .
-
-# Install torch CPU wheels separately for faster install
-RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-
-# Then install other requirements except torch from requirements.txt
-RUN sed '/torch/d' requirements.txt > requirements_no_torch.txt && \
-    pip install --no-cache-dir -r requirements_no_torch.txt
+RUN pip install --upgrade pip
+RUN pip install --user --no-cache-dir -r requirements.txt
 
 COPY . .
+
+FROM python:3.11-slim-bullseye
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    fonts-dejavu-core \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY --from=build /root/.local /root/.local
+COPY --from=build /app /app
+
+ENV PATH=/root/.local/bin:$PATH
 
 CMD ["python", "bot.py"]
