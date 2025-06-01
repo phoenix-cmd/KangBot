@@ -7,4 +7,6 @@ ffmpeg-python
 httpx==0.27.0
 python-dotenv
 gTTs
-huggingface_hub
+soundfile==0.12.1
+torch==2.0.1
+bark==0.1.6
