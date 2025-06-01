@@ -120,10 +120,9 @@ import time
 import logging
 from voice import *  
 
-from client import app  # Moved Client init to client.py
-# import sing
-from handlers.kang import kang_handler
+from client import app
 import handlers.group_admin
+from handlers.kang import kang_handler
 from handlers.mmf import mmf_handler
 from handlers.quotely import quotely
 # from ai import ai_chat_reply, ai_handler
