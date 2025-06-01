@@ -72,12 +72,23 @@ async def build_user_info(client, user):
         }
 
     big_file_id = await fetch_user_big_file_id(client, user.id)
-    photo_field = {"url": f"https://dummyimage.com/100x100/888/fff&text={user.first_name[:1]}"}
+
+    # Default fallback (initial dummy image)
+    photo_field = {
+        "url": f"https://dummyimage.com/100x100/888/fff&text={user.first_name[:1]}"
+    }
 
     if big_file_id:
-        telegram_file_url = await get_telegram_file_url(client, big_file_id)
-        if telegram_file_url:
-            photo_field = {"url": telegram_file_url}
+        try:
+            file = await client.download_media(big_file_id, in_memory=True)
+            if file:
+                import base64
+                b64_image = base64.b64encode(file.read()).decode()
+                photo_field = {
+                    "data": f"data:image/png;base64,{b64_image}"
+                }
+        except Exception as e:
+            print(f"Failed to fetch avatar: {e}")
 
     return {
         "id": user.id,
@@ -85,6 +96,7 @@ async def build_user_info(client, user):
         "username": getattr(user, "username", None),
         "photo": photo_field
     }
+
 
 def build_reply_message(reply_msg: Message):
     if not reply_msg:
