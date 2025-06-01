@@ -1,17 +1,48 @@
 import os
 import io
 import httpx
+import traceback
 from pyrogram import filters
 from pyrogram.types import Message
 from client import app
 from dotenv import load_dotenv
-import traceback
 
 load_dotenv()
 
 QUOTE_API_URL = os.getenv("QUOTE_API_URL", "https://bot.lyo.su/quote")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-IMGBB_API_KEY = os.getenv("IMGBB_API_KEY")
+
+def extract_entities(message: Message):
+    if not message.entities:
+        return []
+
+    entities = []
+    for e in message.entities:
+        type_map = {
+            "bold": "bold",
+            "italic": "italic",
+            "underline": "underline",
+            "strikethrough": "strikethrough",
+            "code": "code",
+            "pre": "pre",
+            "text_link": "text_link",
+            "mention": "mention",
+            "url": "url",
+            "email": "email",
+        }
+        entity_type = type_map.get(e.type)
+        if not entity_type:
+            continue
+
+        ent = {
+            "type": entity_type,
+            "offset": e.offset,
+            "length": e.length,
+        }
+        if e.type == "text_link" and e.url:
+            ent["url"] = e.url
+        entities.append(ent)
+    return entities
 
 async def fetch_user_big_file_id(client, user_id):
     try:
@@ -24,31 +55,13 @@ async def fetch_user_big_file_id(client, user_id):
         return None
     return None
 
-async def download_file_bytes(client, file_id):
+async def get_telegram_file_url(client, file_id):
     try:
-        file = await client.download_media(file_id, in_memory=True)
-        return file  # This is bytesIO or bytes
+        file = await client.get_file(file_id)
+        file_path = file.file_path
+        return f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
     except Exception:
         return None
-
-async def upload_to_imgbb(image_bytes):
-    """
-    Upload image bytes to imgbb and return image URL.
-    """
-    url = "https://api.imgbb.com/1/upload"
-    data = {
-        "key": IMGBB_API_KEY,
-        "image": image_bytes.encode("base64") if isinstance(image_bytes, str) else image_bytes,
-    }
-    # Use httpx for async POST with multipart/form-data
-    async with httpx.AsyncClient() as client:
-        files = {"image": image_bytes}
-        response = await client.post(url, params={"key": IMGBB_API_KEY}, files=files)
-        if response.status_code == 200:
-            json_resp = response.json()
-            return json_resp["data"]["url"]
-        else:
-            return None
 
 async def build_user_info(client, user):
     if not user:
@@ -57,22 +70,7 @@ async def build_user_info(client, user):
             "name": "Unknown",
             "photo": {"url": "https://dummyimage.com/100x100/888/fff&text=No+User"}
         }
-    big_file_id = await fetch_user_big_file_id(client, user.id)
-    photo_field = {"url": f"https://dummyimage.com/100x100/888/fff&text={user.first_name[:1]}"}
 
-    if big_file_id and IMGBB_API_KEY:
-        file_bytes = await download_file_bytes(client, big_file_id)
-        if file_bytes:
-            imgbb_url = await upload_to_imgbb(file_bytes)
-            if imgbb_url:
-                photo_field = {"url": imgbb_url}
-
-    return {
-        "id": user.id,
-        "name": user.first_name or "Unknown",
-        "username": getattr(user, "username", None),
-        "photo": photo_field
-    }
     big_file_id = await fetch_user_big_file_id(client, user.id)
     photo_field = {"url": f"https://dummyimage.com/100x100/888/fff&text={user.first_name[:1]}"}
 
@@ -88,7 +86,6 @@ async def build_user_info(client, user):
         "photo": photo_field
     }
 
-
 def build_reply_message(reply_msg: Message):
     if not reply_msg:
         return None
@@ -98,7 +95,6 @@ def build_reply_message(reply_msg: Message):
         "entities": extract_entities(reply_msg),
         "chatId": reply_msg.chat.id
     }
-
 
 async def build_message_obj(client, message: Message):
     user_info = await build_user_info(client, message.from_user)
@@ -119,7 +115,6 @@ async def build_message_obj(client, message: Message):
         "entities": extract_entities(message),
         "replyMessage": build_reply_message(message.reply_to_message) if message.reply_to_message else None
     }
-
 
 @app.on_message(filters.command("q") & filters.reply)
 async def quotely(client, message: Message):
@@ -166,4 +161,3 @@ async def quotely(client, message: Message):
     except Exception as e:
         tb = traceback.format_exc()
         await message.reply_text(f"❌ Exception occurred:\n`{tb}`")
-
