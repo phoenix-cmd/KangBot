@@ -22,4 +22,5 @@ async def ai_chat_reply(client, message):
     await message.reply(reply)
 
 # Expose filter for handler registration
-ai_handler = filters.text & ~filters.command()
+ai_handler = filters.text & ~filters.command(commands=None)
+
