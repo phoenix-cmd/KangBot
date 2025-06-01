@@ -56,6 +56,7 @@ async def voice_command(client, message):
         file_name = f"voice_{user_id}.mp3"
         tts.save(file_name)
 
+        # ✅ Send voice note
         sent = await message.reply_voice(
             voice=file_name,
             caption="🔊 Here's your voice note!",
@@ -67,11 +68,20 @@ async def voice_command(client, message):
             )
         )
 
-        VOICE_STORE[str(sent.id)] = file_name  # store filename for replay
+        # ✅ Send as downloadable file too
+        await message.reply_document(
+            document=file_name,
+            caption="📥 Download your voice file"
+        )
+
+        # Store for replay
+        VOICE_STORE[str(sent.id)] = file_name
+
         await asyncio.sleep(1)
 
     except Exception as e:
         await message.reply_text(f"⚠️ An error occurred:\n`{e}`", quote=True)
+
 
 
 
