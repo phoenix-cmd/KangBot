@@ -126,7 +126,7 @@ from handlers.kang import kang_handler
 from handlers.mmf import mmf_handler
 from handlers.group_admin import group_admin_handlers
 from handlers.quotely import quotely
-from ai import ai_chat_reply, ai_handler
+# from ai import ai_chat_reply, ai_handler
 
 
 print("✅ FFmpeg found at:", shutil.which("ffmpeg"))
@@ -143,9 +143,9 @@ for handler in group_admin_handlers:
 
 
 # Register the AI handler with your existing app instance
-@app.on_message(ai_handler)
-async def handle_ai(client, message):
-    await ai_chat_reply(client, message)
+# @app.on_message(ai_handler)
+# async def handle_ai(client, message):
+#     await ai_chat_reply(client, message)
 
 # Start command handler
 @app.on_message(filters.command("start") & filters.private)
