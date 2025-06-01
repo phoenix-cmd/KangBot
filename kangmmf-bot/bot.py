@@ -123,6 +123,7 @@ from voice import *
 from client import app  # Moved Client init to client.py
 # import sing
 from handlers.kang import kang_handler
+import handlers.group_admin
 from handlers.mmf import mmf_handler
 from handlers.group_admin import group_admin_handlers
 from handlers.quotely import quotely
