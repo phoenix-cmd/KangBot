@@ -135,8 +135,6 @@ print("✅ FFmpeg found at:", shutil.which("ffmpeg"))
 app.add_handler(mmf_handler)
 app.add_handler(kang_handler)
 app.add_handler(quotely)
-for handler in group_admin_handlers:
-    app.add_handler(handler)
 
 # Initialize music handlers, commands, and pytgcalls
 # init_music(app)
