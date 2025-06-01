@@ -118,6 +118,7 @@ from pyrogram.types import Message
 from pyrogram.errors import FloodWait
 import time
 import logging
+from voice import *  
 
 from client import app  # Moved Client init to client.py
 
