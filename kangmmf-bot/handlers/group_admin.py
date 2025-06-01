@@ -1,3 +1,4 @@
+from client import app
 from pyrogram import filters
 from pyrogram.types import Message, ChatPermissions
 from datetime import timedelta, datetime
