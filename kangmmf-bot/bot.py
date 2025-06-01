@@ -126,7 +126,7 @@ from handlers.kang import kang_handler
 from handlers.mmf import mmf_handler
 from handlers.group_admin import group_admin_handlers
 from handlers.quotely import quotely
-
+from ai import ai_chat_reply, ai_handler
 
 
 print("✅ FFmpeg found at:", shutil.which("ffmpeg"))
@@ -141,10 +141,17 @@ for handler in group_admin_handlers:
 # Initialize music handlers, commands, and pytgcalls
 # init_music(app)
 
+
+# Register the AI handler with your existing app instance
+app.add_handler(
+    app.on_message(ai_handler)(ai_chat_reply)
+)
+
 @app.on_message(filters.command("start") & filters.private)
 async def start(_, message: Message):
     await message.reply_text(
         """👋 Hello! I'm AFC-Bot.
+
 
 I can help you:
 📌 Kang stickers
