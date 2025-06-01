@@ -143,15 +143,15 @@ for handler in group_admin_handlers:
 
 
 # Register the AI handler with your existing app instance
-app.add_handler(
-    app.on_message(ai_handler)(ai_chat_reply)
-)
+@app.on_message(ai_handler)
+async def handle_ai(client, message):
+    await ai_chat_reply(client, message)
 
+# Start command handler
 @app.on_message(filters.command("start") & filters.private)
 async def start(_, message: Message):
     await message.reply_text(
         """👋 Hello! I'm AFC-Bot.
-
 
 I can help you:
 📌 Kang stickers
@@ -177,5 +177,3 @@ if __name__ == "__main__":
         time.sleep(e.value)
     except Exception as e:
         logging.error(f"Unexpected error: {e}")
-
-
