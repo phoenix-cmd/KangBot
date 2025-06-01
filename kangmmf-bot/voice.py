@@ -9,6 +9,36 @@ from client import app
 
 VOICE_STORE = {}
 
+# @app.on_message(filters.command("voice") & filters.text)
+# async def voice_command(client, message):
+#     if len(message.command) < 2:
+#         return await message.reply_text("❌ Please provide some text.\n\n**Usage:** `/voice Hello!`", quote=True)
+
+#     text = message.text.split(None, 1)[1]
+#     user_id = message.from_user.id
+
+#     try:
+#         tts = gTTS(text=text, lang='en')
+#         file_name = f"voice_{user_id}.mp3"
+#         tts.save(file_name)
+
+#         sent = await message.reply_voice(
+#             voice=file_name,
+#             caption="🔊 Here's your voice note!",
+#             reply_markup=InlineKeyboardMarkup(
+#                 [[
+#                     InlineKeyboardButton("🔁 Replay", callback_data=f"replay_{user_id}"),
+#                     InlineKeyboardButton("🗑️ Delete", callback_data=f"delete_{user_id}")
+#                 ]]
+#             )
+#         )
+
+#         VOICE_STORE[str(sent.id)] = file_name  # store filename for replay
+#         await asyncio.sleep(1)
+
+#     except Exception as e:
+#         await message.reply_text(f"⚠️ An error occurred:\n`{e}`", quote=True)
+
 @app.on_message(filters.command("voice") & filters.text)
 async def voice_command(client, message):
     if len(message.command) < 2:
@@ -16,6 +46,10 @@ async def voice_command(client, message):
 
     text = message.text.split(None, 1)[1]
     user_id = message.from_user.id
+
+    # ✅ Word limit check (100 words max)
+    if len(text.split()) > 100:
+        return await message.reply_text("⚠️ Your message is too long. Please keep it under **100 words**.", quote=True)
 
     try:
         tts = gTTS(text=text, lang='en')
@@ -38,6 +72,7 @@ async def voice_command(client, message):
 
     except Exception as e:
         await message.reply_text(f"⚠️ An error occurred:\n`{e}`", quote=True)
+
 
 
 @app.on_callback_query(filters.regex(r"^(replay|delete)_(\d+)$"))
