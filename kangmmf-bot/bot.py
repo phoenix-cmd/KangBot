@@ -121,7 +121,7 @@ import logging
 from voice import *  
 
 from client import app  # Moved Client init to client.py
-import sing
+# import sing
 from handlers.kang import kang_handler
 from handlers.mmf import mmf_handler
 from handlers.group_admin import group_admin_handlers
