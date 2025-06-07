@@ -19,12 +19,8 @@ from handlers.quotely import quotely
 # Removed explicit imports of word_chain handlers
 from handlers.genshin import save_genshin_uid, show_genshin_profile, show_character_card, refresh_profile
 import handlers.tree_grow 
-from handlers.word_chain import (
-    start_word_chain,
-    end_word_chain,
-    show_chain_stats,
-    handle_word
-)
+import handlers.word_chain  # This loads the handlers so decorators run
+
 print("✅ FFmpeg found at:", shutil.which("ffmpeg"))
 
 # Add handlers
@@ -51,12 +47,6 @@ app.add_handler(save_genshin_uid)
 app.add_handler(show_genshin_profile)
 app.add_handler(show_character_card)
 app.add_handler(refresh_profile)
-
-
-app.add_handler(start_word_chain)
-app.add_handler(end_word_chain)
-app.add_handler(show_chain_stats)
-app.add_handler(handle_word)
 
 # Start command handler
 @app.on_message(filters.command("start") & filters.private)
