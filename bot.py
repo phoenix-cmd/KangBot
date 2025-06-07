@@ -46,6 +46,17 @@ app.add_handler(save_genshin_uid)
 app.add_handler(show_genshin_profile)
 app.add_handler(show_character_card)
 app.add_handler(refresh_profile)
+from handlers.word_chain import (
+    start_word_chain,
+    end_word_chain,
+    show_chain_stats,
+    handle_word
+)
+
+app.add_handler(start_word_chain)
+app.add_handler(end_word_chain)
+app.add_handler(show_chain_stats)
+app.add_handler(handle_word)
 
 # Start command handler
 @app.on_message(filters.command("start") & filters.private)
