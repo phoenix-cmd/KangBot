@@ -1,0 +1,9 @@
+pyrogram==2.0.106
+tgcrypto
+Pillow==10.2.0
+requests
+aiohttp
+ffmpeg-python
+httpx==0.27.0
+python-dotenv
+gTTs
