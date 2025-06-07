@@ -12,6 +12,9 @@ load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
 client = MongoClient(MONGO_URI)
 
+db = client['tree_database']
+collection = db['trees']
+
 # Helper to get user data from DB
 def get_user_tree(user_id):
     return collection.find_one({"user_id": user_id})
@@ -20,7 +23,7 @@ def get_user_tree(user_id):
 def update_user_tree(user_id, update_dict):
     collection.update_one({"user_id": user_id}, {"$set": update_dict}, upsert=True)
 
-# /growtree command
+# /growdih command
 @app.on_message(filters.command("growdih"))
 async def grow_tree(client, message: Message):
     user_id = message.from_user.id
@@ -53,7 +56,7 @@ async def grow_tree(client, message: Message):
         f"🌳 Current height: **{new_height} cm**"
     )
 
-# /mytree command
+# /mydih command
 @app.on_message(filters.command("mydih"))
 async def check_tree(client, message: Message):
     user_id = message.from_user.id
@@ -66,10 +69,11 @@ async def check_tree(client, message: Message):
         f"🌳 Your current dih height is **{user_data.get('height', 0)} cm**.\nKeep growing it every day!"
     )
 
-# /treeboard command
+# /dihboard command
+from pyrogram.utils import markdown
+
 @app.on_message(filters.command("dihboard"))
 async def tree_leaderboard(client, message: Message):
-    # Find top 10 users by height descending
     top_users = collection.find().sort("height", -1).limit(10)
 
     board = "🌳 **Top 10 Tallest Dih** 🌳\n\n"
@@ -77,7 +81,7 @@ async def tree_leaderboard(client, message: Message):
     empty = True
     for user_data in top_users:
         empty = False
-        name = user_data.get("name", f"User {user_data.get('user_id')}")
+        name = markdown.escape_markdown(user_data.get("name", f"User {user_data.get('user_id')}"))
         height = user_data.get("height", 0)
         board += f"{rank}. **{name}** — {height} cm\n"
         rank += 1
