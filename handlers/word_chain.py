@@ -211,7 +211,7 @@ async def show_chain_stats(client, message: Message):
         logger.error(f"Error in show_chain_stats: {e}")
         await message.reply("❌ An error occurred while fetching game stats.")
 
-@app.on_message(filters.text & ~filters.command)
+@app.on_message(filters.text & ~filters.regex(r"^/"))
 async def handle_word(client, message: Message):
     """Handle incoming words in the game."""
     try:
@@ -257,4 +257,4 @@ async def handle_word(client, message: Message):
                 await message.reply("❌ Invalid word!")
     except Exception as e:
         logger.error(f"Error in handle_word: {e}")
-        await message.reply("❌ An error occurred while processing your word.") 
+        await message.reply("❌ An error occurred while processing your word.")
