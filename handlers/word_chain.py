@@ -196,7 +196,7 @@ async def show_chain_stats(client, message: Message):
     
     await message.reply(stats)
 
-@app.on_message(filters.group & ~filters.service & ~filters.command())
+@app.on_message(filters.group & ~filters.service & filters.text)
 async def handle_word(client, message: Message):
     """Handle incoming words in the game."""
     chat_id = message.chat.id
