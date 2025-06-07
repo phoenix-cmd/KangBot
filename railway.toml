@@ -1,5 +1,5 @@
 [build]
-builder = "railway:custom"
+builder = "railway/custom"
 
 [build.packs.python]
 version = "3.11"
