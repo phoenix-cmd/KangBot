@@ -1,6 +1,3 @@
-[build]
-builder = "railway/custom"
-
 [build.packs.python]
 version = "3.11"
 
