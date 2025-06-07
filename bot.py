@@ -7,7 +7,7 @@ from pyrogram.errors import FloodWait
 import time
 import logging
 from voice import *  
-
+from handlers.word_chain import start_word_chain, end_word_chain, show_chain_stats, handle_word
 from client import app
 from handlers.group_admin import (
     kick_user, ban_user, unban_user, mute_user, unmute_user,
@@ -41,7 +41,10 @@ app.add_handler(spam_check)
 app.add_handler(spam_settings)
 
 # Removed word chain game handlers here (decorators handle registration)
-
+app.add_handler(start_word_chain)
+app.add_handler(end_word_chain)
+app.add_handler(show_chain_stats)
+app.add_handler(handle_word)
 # Add Genshin Impact handlers
 app.add_handler(save_genshin_uid)
 app.add_handler(show_genshin_profile)
