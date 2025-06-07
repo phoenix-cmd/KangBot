@@ -18,7 +18,6 @@ from handlers.mmf import mmf_handler
 from handlers.quotely import quotely
 from handlers.word_chain import start_word_chain, end_word_chain, show_chain_stats, handle_word
 from handlers.genshin import save_genshin_uid, show_genshin_profile, show_character_card, refresh_profile
-from handlers.music import play_music, skip_music, stop_music, show_queue
 import handlers.tree_grow 
 
 print("✅ FFmpeg found at:", shutil.which("ffmpeg"))
@@ -52,12 +51,6 @@ app.add_handler(show_genshin_profile)
 app.add_handler(show_character_card)
 app.add_handler(refresh_profile)
 
-# Add music handlers
-app.add_handler(play_music)
-app.add_handler(skip_music)
-app.add_handler(stop_music)
-app.add_handler(show_queue)
-
 # Start command handler
 @app.on_message(filters.command("start") & filters.private)
 async def start(_, message: Message):
@@ -71,24 +64,12 @@ I can help you with:
 🛠️ Spam protection
 🎮 Word Chain Game
 🎮 Genshin Impact Profile
-🎵 Music Player
 
 Here's what I can do:
 
 Sticker & Media:
 • `/kang` — Reply to a sticker, photo, or image to steal it into your pack.
 • `/mmf top ; bottom` — Meme Maker Format! Reply to an image/sticker/video with your meme text.
-
-Music Player:
-• `/play` or `/p` — Play music in voice chat (YouTube URL or search query)
-• `/skip` or `/s` — Skip current song
-• `/stop` or `/leave` — Stop music and leave voice chat
-• `/queue` or `/q` — Show current music queue
-Features:
-- YouTube search support
-- Music queue system
-- High-quality audio
-- Auto-join voice chat
 
 Genshin Impact:
 • `/gilogin <uid>` — Save your Genshin Impact UID
@@ -135,7 +116,6 @@ Spam Protection:
 `/wordchain` (start a word chain game)
 `/gilogin 123456789` (save your Genshin UID)
 `/myc` (view your Genshin profile)
-`/play never gonna give you up` (play music)
 
 ✨ More features coming soon.  
 Made with ❤️ by AFC Engineers."""
