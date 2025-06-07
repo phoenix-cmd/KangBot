@@ -5,6 +5,7 @@ from pyrogram import filters, Client
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram.errors import UserNotParticipant
 import logging
+from client import app
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
