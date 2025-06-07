@@ -1,131 +1,220 @@
-import os
-import asyncio
-import shutil
+from client import app
 from pyrogram import filters
 from pyrogram.types import Message
-from pyrogram.errors import FloodWait
-import time
 import logging
-from voice import *  
+from typing import Dict, Set
+import json
+import os
+import random
+from datetime import datetime, timedelta
 
-from client import app
-from handlers.group_admin import (
-    kick_user, ban_user, unban_user, mute_user, unmute_user,
-    warn_user, view_warnings, delete_warning, spam_check, spam_settings
-)
-from handlers.kang import kang_handler
-from handlers.mmf import mmf_handler
-from handlers.quotely import quotely
-from handlers.word_chain import start_word_chain, end_word_chain, show_chain_stats, handle_word
-from handlers.genshin import save_genshin_uid, show_genshin_profile, show_character_card, refresh_profile
-import handlers.tree_grow 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-print("✅ FFmpeg found at:", shutil.which("ffmpeg"))
+# Game state storage
+GAME_STATE_FILE = "data/word_chain_games.json"
+MIN_WORD_LENGTH = 3
+GAME_TIMEOUT = 5  # minutes
 
-# Add handlers
-app.add_handler(mmf_handler)
-app.add_handler(kang_handler)
-app.add_handler(quotely)
+os.makedirs("data", exist_ok=True)
 
-# Add group admin handlers
-app.add_handler(kick_user)
-app.add_handler(ban_user)
-app.add_handler(unban_user)
-app.add_handler(mute_user)
-app.add_handler(unmute_user)
-app.add_handler(warn_user)
-app.add_handler(view_warnings)
-app.add_handler(delete_warning)
-app.add_handler(spam_check)
-app.add_handler(spam_settings)
+class WordChainGame:
+    def __init__(self, chat_id: int):
+        self.chat_id = chat_id
+        self.used_words: Set[str] = set()
+        self.last_word: str = ""
+        self.last_user_id: int = 0
+        self.start_time: datetime = datetime.now()
+        self.is_active: bool = True
+        self.score: Dict[int, int] = {}
 
-# Add word chain game handlers
-app.add_handler(start_word_chain)
-app.add_handler(end_word_chain)
-app.add_handler(show_chain_stats)
-app.add_handler(handle_word)
+    def is_valid_word(self, word: str, last_word: str) -> bool:
+        if not word or len(word) < MIN_WORD_LENGTH:
+            return False
+        if word in self.used_words:
+            return False
+        if last_word and word[0].lower() != last_word[-1].lower():
+            return False
+        return True
 
-# Add Genshin Impact handlers
-app.add_handler(save_genshin_uid)
-app.add_handler(show_genshin_profile)
-app.add_handler(show_character_card)
-app.add_handler(refresh_profile)
+    def add_word(self, word: str, user_id: int) -> bool:
+        if not self.is_valid_word(word, self.last_word):
+            return False
+        self.used_words.add(word.lower())
+        self.last_word = word
+        self.last_user_id = user_id
+        self.start_time = datetime.now()
+        self.score[user_id] = self.score.get(user_id, 0) + 1
+        return True
 
-# Start command handler
-@app.on_message(filters.command("start") & filters.private)
-async def start(_, message: Message):
-    await message.reply_text(
-        """👋 Hello! I'm AFC-Bot.
+    def is_timed_out(self) -> bool:
+        return (datetime.now() - self.start_time) > timedelta(minutes=GAME_TIMEOUT)
 
-I can help you with:
-📌 Kang stickers
-🖼️ Create memes from images/videos
-🛡️ Group administration
-🛠️ Spam protection
-🎮 Word Chain Game
-🎮 Genshin Impact Profile
+    def to_dict(self) -> dict:
+        return {
+            "chat_id": self.chat_id,
+            "used_words": list(self.used_words),
+            "last_word": self.last_word,
+            "last_user_id": self.last_user_id,
+            "start_time": self.start_time.isoformat(),
+            "is_active": self.is_active,
+            "score": self.score,
+        }
 
-Here's what I can do:
+    @classmethod
+    def from_dict(cls, data: dict) -> 'WordChainGame':
+        game = cls(data["chat_id"])
+        game.used_words = set(data["used_words"])
+        game.last_word = data["last_word"]
+        game.last_user_id = data["last_user_id"]
+        game.start_time = datetime.fromisoformat(data["start_time"])
+        game.is_active = data["is_active"]
+        game.score = data["score"]
+        return game
 
-Sticker & Media:
-• `/kang` — Reply to a sticker, photo, or image to steal it into your pack.
-• `/mmf top ; bottom` — Meme Maker Format! Reply to an image/sticker/video with your meme text.
+active_games: Dict[int, WordChainGame] = {}
 
-Genshin Impact:
-• `/gilogin <uid>` — Save your Genshin Impact UID
-• `/myc` — View your Genshin Impact profile and characters
-Features:
-- View Adventure Rank and World Level
-- List all your characters
-- View detailed character cards
-- Check artifacts and talents
+def load_games():
+    if os.path.exists(GAME_STATE_FILE):
+        try:
+            with open(GAME_STATE_FILE, 'r') as f:
+                data = json.load(f)
+                for chat_id, game_data in data.items():
+                    active_games[int(chat_id)] = WordChainGame.from_dict(game_data)
+        except Exception as e:
+            logger.error(f"Error loading games: {e}")
 
-Word Chain Game:
-• `/wordchain` or `/wc` — Start a new word chain game
-• `/endchain` or `/ec` — End the current game
-• `/chainstats` or `/cs` — Show current game stats
-Rules:
-- Words must be at least 3 letters
-- Each word must start with the last letter of previous word
-- No repeating words
-- Game times out after 5 minutes of inactivity
-
-Group Admin:
-• `/kick` — Kick a user from the group
-• `/ban` — Ban a user from the group
-• `/unban` — Unban a user
-• `/mute` — Mute a user (with optional duration: 1h, 30m, 2d)
-• `/unmute` — Unmute a user
-
-Warning System:
-• `/warn` — Warn a user
-• `/warnings` — View user's warnings
-• `/delwarn` — Remove a warning
-
-Spam Protection:
-• `/spamsettings` — Configure spam protection
-• Auto-detects and handles:
-  - Message flooding
-  - Link spam
-  - Media spam
-
-🛠 Examples:  
-`/mmf when the code works ; but you don't know why`
-`/mute 1h` (mute for 1 hour)
-`/warn Spamming in chat`
-`/wordchain` (start a word chain game)
-`/gilogin 123456789` (save your Genshin UID)
-`/myc` (view your Genshin profile)
-
-✨ More features coming soon.  
-Made with ❤️ by AFC Engineers."""
-    )
-
-if __name__ == "__main__":
+def save_games():
     try:
-        app.run()
-    except FloodWait as e:
-        logging.warning(f"FloodWait: Need to wait {e.value} seconds. Sleeping...")
-        time.sleep(e.value)
+        data = {str(chat_id): game.to_dict() for chat_id, game in active_games.items()}
+        with open(GAME_STATE_FILE, 'w') as f:
+            json.dump(data, f, indent=4)
     except Exception as e:
-        logging.error(f"Unexpected error: {e}")
+        logger.error(f"Error saving games: {e}")
+
+load_games()
+
+@app.on_message(filters.command(["wordchain", "wc"]) & filters.group)
+async def start_word_chain(client, message: Message):
+    try:
+        chat_id = message.chat.id
+        if chat_id in active_games and active_games[chat_id].is_active:
+            return await message.reply("❌ A game is already in progress in this chat!")
+
+        game = WordChainGame(chat_id)
+        active_games[chat_id] = game
+        save_games()
+
+        await message.reply(
+            "🎮 Word Chain Game Started!\n\n"
+            "Rules:\n"
+            f"• Words must be at least {MIN_WORD_LENGTH} letters long\n"
+            "• Each word must start with the last letter of the previous word\n"
+            "• No repeating words\n"
+            "• Game times out after 5 minutes of inactivity\n\n"
+            "Start by sending any word!"
+        )
+    except Exception as e:
+        logger.error(f"Error in start_word_chain: {e}")
+        await message.reply("❌ An error occurred while starting the game.")
+
+@app.on_message(filters.command(["endchain", "ec"]) & filters.group)
+async def end_word_chain(client, message: Message):
+    try:
+        chat_id = message.chat.id
+        if chat_id not in active_games or not active_games[chat_id].is_active:
+            return await message.reply("❌ No active game in this chat!")
+
+        game = active_games[chat_id]
+        game.is_active = False
+
+        if game.score:
+            scoreboard = "🏆 Final Scores:\n\n"
+            sorted_scores = sorted(game.score.items(), key=lambda x: x[1], reverse=True)
+            for user_id, score in sorted_scores:
+                try:
+                    user = await client.get_users(user_id)
+                    scoreboard += f"• {user.mention}: {score} points\n"
+                except:
+                    scoreboard += f"• User {user_id}: {score} points\n"
+        else:
+            scoreboard = "No words were played in this game."
+
+        await message.reply(f"🎮 Game Over!\n\n{scoreboard}")
+        del active_games[chat_id]
+        save_games()
+    except Exception as e:
+        logger.error(f"Error in end_word_chain: {e}")
+        await message.reply("❌ An error occurred while ending the game.")
+
+@app.on_message(filters.command(["chainstats", "cs"]) & filters.group)
+async def show_chain_stats(client, message: Message):
+    try:
+        chat_id = message.chat.id
+        if chat_id not in active_games or not active_games[chat_id].is_active:
+            return await message.reply("❌ No active game in this chat!")
+
+        game = active_games[chat_id]
+        stats = "📊 Current Game Stats:\n\n"
+        stats += f"• Total Words: {len(game.used_words)}\n"
+        stats += f"• Last Word: {game.last_word}\n"
+
+        if game.score:
+            stats += "\n🏆 Current Scores:\n"
+            sorted_scores = sorted(game.score.items(), key=lambda x: x[1], reverse=True)
+            for user_id, score in sorted_scores[:5]:
+                try:
+                    user = await client.get_users(user_id)
+                    stats += f"• {user.mention}: {score} points\n"
+                except:
+                    stats += f"• User {user_id}: {score} points\n"
+
+        await message.reply(stats)
+    except Exception as e:
+        logger.error(f"Error in show_chain_stats: {e}")
+        await message.reply("❌ An error occurred while fetching game stats.")
+
+@app.on_message(filters.text & ~filters.regex(r"^/") & filters.group)
+async def handle_word(client, message: Message):
+    try:
+        chat_id = message.chat.id
+        if chat_id not in active_games or not active_games[chat_id].is_active:
+            return
+
+        game = active_games[chat_id]
+
+        if game.is_timed_out():
+            game.is_active = False
+            await message.reply(
+                "⏰ Game timed out due to inactivity!\n"
+                "Use /wordchain to start a new game."
+            )
+            del active_games[chat_id]
+            save_games()
+            return
+
+        word = message.text.strip().lower()
+
+        if ' ' in word:
+            return await message.reply("❌ Please send only one word!")
+
+        if game.add_word(word, message.from_user.id):
+            save_games()
+            mention = message.from_user.mention if message.from_user else f"User {message.from_user.id}"
+            await message.reply(
+                f"✅ {mention} added: {word}\n"
+                f"Next word should start with: {word[-1].upper()}"
+            )
+        else:
+            if word in game.used_words:
+                await message.reply("❌ This word has already been used!")
+            elif len(word) < MIN_WORD_LENGTH:
+                await message.reply(f"❌ Word must be at least {MIN_WORD_LENGTH} letters long!")
+            elif game.last_word and word[0].lower() != game.last_word[-1].lower():
+                await message.reply(f"❌ Word must start with '{game.last_word[-1].upper()}'!")
+            else:
+                await message.reply("❌ Invalid word!")
+    except Exception as e:
+        logger.error(f"Error in handle_word: {e}")
+        await message.reply("❌ An error occurred while processing your word.")
