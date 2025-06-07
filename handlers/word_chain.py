@@ -1,6 +1,7 @@
 from client import app
 from pyrogram import filters
 from pyrogram.types import Message
+from pyrogram.handlers import MessageHandler
 import logging
 from typing import Dict, Set
 import json
@@ -95,7 +96,6 @@ def save_games():
 
 load_games()
 
-@app.on_message(filters.command(["wordchain", "wc"]) & filters.group)
 async def start_word_chain(client, message: Message):
     try:
         chat_id = message.chat.id
@@ -119,7 +119,6 @@ async def start_word_chain(client, message: Message):
         logger.error(f"Error in start_word_chain: {e}")
         await message.reply("❌ An error occurred while starting the game.")
 
-@app.on_message(filters.command(["endchain", "ec"]) & filters.group)
 async def end_word_chain(client, message: Message):
     try:
         chat_id = message.chat.id
@@ -148,7 +147,6 @@ async def end_word_chain(client, message: Message):
         logger.error(f"Error in end_word_chain: {e}")
         await message.reply("❌ An error occurred while ending the game.")
 
-@app.on_message(filters.command(["chainstats", "cs"]) & filters.group)
 async def show_chain_stats(client, message: Message):
     try:
         chat_id = message.chat.id
@@ -175,7 +173,6 @@ async def show_chain_stats(client, message: Message):
         logger.error(f"Error in show_chain_stats: {e}")
         await message.reply("❌ An error occurred while fetching game stats.")
 
-@app.on_message(filters.text & ~filters.regex(r"^/") & filters.group)
 async def handle_word(client, message: Message):
     try:
         chat_id = message.chat.id
@@ -218,3 +215,16 @@ async def handle_word(client, message: Message):
     except Exception as e:
         logger.error(f"Error in handle_word: {e}")
         await message.reply("❌ An error occurred while processing your word.")
+
+# Register handlers as objects
+start_word_chain = MessageHandler(start_word_chain, filters.command(["wordchain", "wc"]) & filters.group)
+end_word_chain = MessageHandler(end_word_chain, filters.command(["endchain", "ec"]) & filters.group)
+show_chain_stats = MessageHandler(show_chain_stats, filters.command(["chainstats", "cs"]) & filters.group)
+handle_word = MessageHandler(handle_word, filters.text & ~filters.regex(r"^/") & filters.group)
+
+__all__ = [
+    "start_word_chain",
+    "end_word_chain",
+    "show_chain_stats",
+    "handle_word"
+]
