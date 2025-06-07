@@ -118,7 +118,7 @@ def save_games():
 # Load existing games
 load_games()
 
-@app.on_message(filters.command(["wordchain", "wc"]) & filters.group)
+@app.on_message(filters.command(["wordchain", "wc"]))
 async def start_word_chain(client, message: Message):
     """Start a new word chain game."""
     try:
@@ -147,7 +147,7 @@ async def start_word_chain(client, message: Message):
         logger.error(f"Error in start_word_chain: {e}")
         await message.reply("❌ An error occurred while starting the game.")
 
-@app.on_message(filters.command(["endchain", "ec"]) & filters.group)
+@app.on_message(filters.command(["endchain", "ec"]))
 async def end_word_chain(client, message: Message):
     """End the current word chain game."""
     try:
@@ -181,7 +181,7 @@ async def end_word_chain(client, message: Message):
         logger.error(f"Error in end_word_chain: {e}")
         await message.reply("❌ An error occurred while ending the game.")
 
-@app.on_message(filters.command(["chainstats", "cs"]) & filters.group)
+@app.on_message(filters.command(["chainstats", "cs"]))
 async def show_chain_stats(client, message: Message):
     """Show current game statistics."""
     try:
@@ -211,7 +211,7 @@ async def show_chain_stats(client, message: Message):
         logger.error(f"Error in show_chain_stats: {e}")
         await message.reply("❌ An error occurred while fetching game stats.")
 
-@app.on_message(filters.group & ~filters.service & filters.text)
+@app.on_message(filters.text & ~filters.command)
 async def handle_word(client, message: Message):
     """Handle incoming words in the game."""
     try:
@@ -235,10 +235,6 @@ async def handle_word(client, message: Message):
         
         # Get word from message
         word = message.text.strip().lower()
-        
-        # Skip if message is a command
-        if word.startswith('/'):
-            return
         
         # Validate and add word
         if game.add_word(word, message.from_user.id):
