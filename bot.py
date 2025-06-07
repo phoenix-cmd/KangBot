@@ -125,6 +125,7 @@ import handlers.group_admin
 from handlers.kang import kang_handler
 from handlers.mmf import mmf_handler
 from handlers.quotely import quotely
+import handlers.tree_grow 
 # from ai import ai_chat_reply, ai_handler
 
 
