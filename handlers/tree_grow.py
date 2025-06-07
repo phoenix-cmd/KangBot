@@ -38,8 +38,8 @@ fixed_uri = urlunparse((
 ))
 
 client = MongoClient(fixed_uri)
-db = client["your_db_name"]  # Replace with your actual database name
-collection = db["tree_data"]  # Replace with your collection name
+db = client["growtree"]  # Replace with your actual database name
+collection = db["users"]  # Replace with your collection name
 
 # Helper to get user data from DB
 def get_user_tree(user_id):
