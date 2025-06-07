@@ -4,16 +4,42 @@ from pymongo import MongoClient
 from pyrogram import filters
 from pyrogram.types import Message
 from client import app
-from urllib.parse import quote_plus
+from urllib.parse import urlparse, quote_plus, urlunparse
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI")
-client = MongoClient(MONGO_URI)
 
-db = client['tree_database']
-collection = db['trees']
+# Parse the URI
+parsed = urlparse(MONGO_URI)
+
+# Encode username and password if present
+username = quote_plus(parsed.username) if parsed.username else None
+password = quote_plus(parsed.password) if parsed.password else None
+
+# Rebuild netloc with encoded username and password
+if username and password:
+    netloc = f"{username}:{password}@{parsed.hostname}"
+    if parsed.port:
+        netloc += f":{parsed.port}"
+else:
+    netloc = parsed.netloc
+
+# Rebuild the URI with encoded credentials
+fixed_uri = urlunparse((
+    parsed.scheme,
+    netloc,
+    parsed.path,
+    parsed.params,
+    parsed.query,
+    parsed.fragment
+))
+
+client = MongoClient(fixed_uri)
+db = client["your_db_name"]  # Replace with your actual database name
+collection = db["tree_data"]  # Replace with your collection name
 
 # Helper to get user data from DB
 def get_user_tree(user_id):
@@ -70,10 +96,9 @@ async def check_tree(client, message: Message):
     )
 
 # /dihboard command
-from pyrogram.utils import markdown
-
 @app.on_message(filters.command("dihboard"))
 async def tree_leaderboard(client, message: Message):
+    # Find top 10 users by height descending
     top_users = collection.find().sort("height", -1).limit(10)
 
     board = "🌳 **Top 10 Tallest Dih** 🌳\n\n"
@@ -81,7 +106,7 @@ async def tree_leaderboard(client, message: Message):
     empty = True
     for user_data in top_users:
         empty = False
-        name = markdown.escape_markdown(user_data.get("name", f"User {user_data.get('user_id')}"))
+        name = user_data.get("name", f"User {user_data.get('user_id')}")
         height = user_data.get("height", 0)
         board += f"{rank}. **{name}** — {height} cm\n"
         rank += 1
