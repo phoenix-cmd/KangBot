@@ -16,7 +16,7 @@ from handlers.group_admin import (
 from handlers.kang import kang_handler
 from handlers.mmf import mmf_handler
 from handlers.quotely import quotely
-from handlers.word_chain import start_word_chain, end_word_chain, show_chain_stats, handle_word
+# Removed explicit imports of word_chain handlers
 from handlers.genshin import save_genshin_uid, show_genshin_profile, show_character_card, refresh_profile
 import handlers.tree_grow 
 
@@ -39,11 +39,7 @@ app.add_handler(delete_warning)
 app.add_handler(spam_check)
 app.add_handler(spam_settings)
 
-# Add word chain game handlers
-app.add_handler(start_word_chain)
-app.add_handler(end_word_chain)
-app.add_handler(show_chain_stats)
-app.add_handler(handle_word)
+# Removed word chain game handlers here (decorators handle registration)
 
 # Add Genshin Impact handlers
 app.add_handler(save_genshin_uid)
