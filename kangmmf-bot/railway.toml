@@ -1,5 +1,7 @@
 [build]
 builder = "railway:custom"
+buildCommand = "cd kangmmf-bot && pip install -r requirements.txt"
+startCommand = "cd kangmmf-bot && python bot.py"
 
 [build.packs.python]
 version = "3.11"
