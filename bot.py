@@ -16,6 +16,8 @@ from handlers.group_admin import (
 from handlers.kang import kang_handler
 from handlers.mmf import mmf_handler
 from handlers.quotely import quotely
+from handlers.word_chain import start_word_chain, end_word_chain, show_chain_stats, handle_word
+from handlers.genshin import save_genshin_uid, show_genshin_profile, show_character_card, refresh_profile
 import handlers.tree_grow 
 
 print("✅ FFmpeg found at:", shutil.which("ffmpeg"))
@@ -37,6 +39,18 @@ app.add_handler(delete_warning)
 app.add_handler(spam_check)
 app.add_handler(spam_settings)
 
+# Add word chain game handlers
+app.add_handler(start_word_chain)
+app.add_handler(end_word_chain)
+app.add_handler(show_chain_stats)
+app.add_handler(handle_word)
+
+# Add Genshin Impact handlers
+app.add_handler(save_genshin_uid)
+app.add_handler(show_genshin_profile)
+app.add_handler(show_character_card)
+app.add_handler(refresh_profile)
+
 # Start command handler
 @app.on_message(filters.command("start") & filters.private)
 async def start(_, message: Message):
@@ -48,12 +62,33 @@ I can help you with:
 🖼️ Create memes from images/videos
 🛡️ Group administration
 🛠️ Spam protection
+🎮 Word Chain Game
+🎮 Genshin Impact Profile
 
 Here's what I can do:
 
 Sticker & Media:
 • `/kang` — Reply to a sticker, photo, or image to steal it into your pack.
 • `/mmf top ; bottom` — Meme Maker Format! Reply to an image/sticker/video with your meme text.
+
+Genshin Impact:
+• `/gilogin <uid>` — Save your Genshin Impact UID
+• `/myc` — View your Genshin Impact profile and characters
+Features:
+- View Adventure Rank and World Level
+- List all your characters
+- View detailed character cards
+- Check artifacts and talents
+
+Word Chain Game:
+• `/wordchain` or `/wc` — Start a new word chain game
+• `/endchain` or `/ec` — End the current game
+• `/chainstats` or `/cs` — Show current game stats
+Rules:
+- Words must be at least 3 letters
+- Each word must start with the last letter of previous word
+- No repeating words
+- Game times out after 5 minutes of inactivity
 
 Group Admin:
 • `/kick` — Kick a user from the group
@@ -74,10 +109,13 @@ Spam Protection:
   - Link spam
   - Media spam
 
-🛠 Example:  
+🛠 Examples:  
 `/mmf when the code works ; but you don't know why`
 `/mute 1h` (mute for 1 hour)
 `/warn Spamming in chat`
+`/wordchain` (start a word chain game)
+`/gilogin 123456789` (save your Genshin UID)
+`/myc` (view your Genshin profile)
 
 ✨ More features coming soon.  
 Made with ❤️ by AFC Engineers."""
