@@ -1,86 +1,87 @@
-import json
 import random
 import time
+from pymongo import MongoClient
 from pyrogram import filters
 from pyrogram.types import Message
-from client import app  # Your Pyrogram client
+from client import app
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
-TREE_DATA_FILE = "tree_data.json"
+MONGO_URI = os.getenv("MONGO_URI")
+client = MongoClient(MONGO_URI)
 
-def load_tree_data():
-    try:
-        with open(TREE_DATA_FILE, "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
+# Helper to get user data from DB
+def get_user_tree(user_id):
+    return collection.find_one({"user_id": user_id})
 
-def save_tree_data(data):
-    with open(TREE_DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+# Helper to update user data in DB
+def update_user_tree(user_id, update_dict):
+    collection.update_one({"user_id": user_id}, {"$set": update_dict}, upsert=True)
 
-# /growtree - grow the user's tree
-@app.on_message(filters.command("growtree"))
+# /growtree command
+@app.on_message(filters.command("growdih"))
 async def grow_tree(client, message: Message):
-    user_id = str(message.from_user.id)
+    user_id = message.from_user.id
     username = message.from_user.first_name
-    tree_data = load_tree_data()
     now = int(time.time())
 
-    user_data = tree_data.get(user_id, {"height": 0, "last_grow": 0})
-    last_grow = user_data["last_grow"]
+    user_data = get_user_tree(user_id)
 
-    # Check cooldown (1 day)
-    if now - last_grow < 86400:
-        remaining = 86400 - (now - last_grow)
+    if user_data and now - user_data.get("last_grow", 0) < 86400:
+        remaining = 86400 - (now - user_data["last_grow"])
         hours = remaining // 3600
         minutes = (remaining % 3600) // 60
         return await message.reply(
-            f"🌳 You already grew your tree today!\nTry again in {hours}h {minutes}m."
+            f"🌳 You already grew your dih today!\nTry again in {hours}h {minutes}m."
         )
 
     growth = random.randint(1, 15)
-    user_data["height"] += growth
-    user_data["last_grow"] = now
-    user_data["name"] = username
-    tree_data[user_id] = user_data
-    save_tree_data(tree_data)
+    new_height = growth
+    if user_data:
+        new_height += user_data.get("height", 0)
+
+    update_user_tree(user_id, {
+        "height": new_height,
+        "last_grow": now,
+        "name": username
+    })
 
     await message.reply(
-        f"🌱 Your tree grew by **{growth} cm** today!\n"
-        f"🌳 Current height: **{user_data['height']} cm**"
+        f"🌱 Your dih grew by **{growth} cm** today!\n"
+        f"🌳 Current height: **{new_height} cm**"
     )
 
-# /mytree - check tree height
-@app.on_message(filters.command("mytree"))
+# /mytree command
+@app.on_message(filters.command("mydih"))
 async def check_tree(client, message: Message):
-    user_id = str(message.from_user.id)
-    tree_data = load_tree_data()
-    user_data = tree_data.get(user_id)
+    user_id = message.from_user.id
+    user_data = get_user_tree(user_id)
 
     if not user_data:
-        return await message.reply("🌱 You haven't started growing your tree yet. Use /growtree!")
+        return await message.reply("🌱 You haven't started growing your dih yet. Use /growdih!")
 
     await message.reply(
-        f"🌳 Your current tree height is **{user_data['height']} cm**.\nKeep growing it every day!"
+        f"🌳 Your current dih height is **{user_data.get('height', 0)} cm**.\nKeep growing it every day!"
     )
 
-# /treeboard - top 10 tallest trees
-@app.on_message(filters.command("treeboard"))
+# /treeboard command
+@app.on_message(filters.command("dihboard"))
 async def tree_leaderboard(client, message: Message):
-    tree_data = load_tree_data()
+    # Find top 10 users by height descending
+    top_users = collection.find().sort("height", -1).limit(10)
 
-    # Sort by height
-    top_users = sorted(
-        tree_data.items(), key=lambda x: x[1].get("height", 0), reverse=True
-    )[:10]
+    board = "🌳 **Top 10 Tallest Dih** 🌳\n\n"
+    rank = 1
+    empty = True
+    for user_data in top_users:
+        empty = False
+        name = user_data.get("name", f"User {user_data.get('user_id')}")
+        height = user_data.get("height", 0)
+        board += f"{rank}. **{name}** — {height} cm\n"
+        rank += 1
 
-    if not top_users:
-        return await message.reply("No trees have been grown yet 🌱")
-
-    board = "🌳 **Top 10 Tallest Trees** 🌳\n\n"
-    for idx, (user_id, data) in enumerate(top_users, start=1):
-        name = data.get("name", f"User {user_id}")
-        height = data["height"]
-        board += f"{idx}. **{name}** — {height} cm\n"
+    if empty:
+        return await message.reply("No dih has been grown yet 🌱")
 
     await message.reply(board)
